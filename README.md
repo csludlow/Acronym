@@ -1,10 +1,10 @@
 # Acronym
 
-A local, single-user vendor assessment assistant. It helps small software vendors organize product facts, security responses, evidence, accessibility testing, and human review before preparing purchaser deliverables.
+Acronym helps small software vendors prepare security questionnaires and accessibility reports for college and university purchasers. It explains unfamiliar questions, organizes evidence and testing results, and guides users through human review. Users leave with an editable preparation package and clear next steps for completing the requested HECVAT and VPAT-based documents.
 
 **Working prototype:** React and TypeScript, a Node/Express server, SQLite, and local evidence files. No AI service, API key, or external service is required at runtime. CU Launch hosting and protocols are intentionally deferred.
 
-**Official-template boundary:** this release supplies original preparation content and generic DOCX/JSON reports. It does not bundle HECVAT questions, generate an official HECVAT workbook, or produce an official VPAT®-based ACR. HECVAT platform licensing is not established. Official exports fail visibly rather than guessing. See [standards research](docs/STANDARDS.md).
+**Official-template boundary:** this release supplies original preparation content and generic DOCX/PDF/JSON reports. It does not bundle HECVAT questions, generate an official HECVAT workbook, or produce an official VPAT®-based ACR. HECVAT platform licensing is not established. Official exports fail visibly rather than guessing. See [standards research](docs/STANDARDS.md).
 
 ![Synthetic assessment dashboard](docs/screenshots/dashboard.png)
 
@@ -40,7 +40,7 @@ An npm-only installation also works with `npm install`, followed by the same `np
 3. **Questionnaire:** use the grouped original questions, plain-language explanations, response format, and evidence suggestions. Add an answer, citations, completed tests, or a human attestation. No is valid. Not applicable needs a reason and confirmation. Save before switching questions.
 4. **Accessibility:** define actual criterion identifiers, standards, levels, and scope; the supplied areas are just starters. Record screens, workflow, OS/configuration, methods/tools/assistive technologies, expected and observed behavior, tester/date, findings, limitations, and remediation. Link evidence. Record criterion judgments separately with a named reviewer and coverage acknowledgment.
 5. **Review queue:** approve supported answers as a named human. A reviewer name is an acknowledgment, not verified identity or a cryptographic signature. Changes to answers, product details, or relevant evidence/test records require renewed review.
-6. **Exports and handoff:** create a draft snapshot at any time. Download DOCX and JSON from the same fixed snapshot. Final generic completion requires all documentation/review tasks to be resolved, but can include documented failures. This is not a security score, accessibility certification, or official template completion.
+6. **Exports and handoff:** create a draft snapshot at any time. Download DOCX, PDF, and JSON from the same fixed snapshot. Final generic completion requires all documentation/review tasks to be resolved, but can include documented failures. This is not a security score, accessibility certification, or official template completion.
 
 The synthetic workflow includes creating a shipment, editing an address, responding to a validation error, and printing a label. It uses no real shipment records or customer addresses. `tests/helpers.ts` contains a complete synthetic fixture for testing final reports with documented failures.
 
@@ -71,7 +71,7 @@ See [verification results and limitations](docs/TESTING.md). For manual DOCX QA,
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Original questionnaire         | Preparation v1, eight original questions; no official HECVAT question set                                                                        |
 | Accessibility workspace        | User-defined criteria plus six original starter areas; no automatic standards inventory                                                          |
-| Generic exports                | Editable DOCX; `acronym-generic-v1` JSON; fixed snapshots                                                                                        |
+| Generic exports                | Editable DOCX; shareable PDF; `acronym-generic-v1` JSON; fixed snapshots                                                                         |
 | Official HECVAT / VPAT® export | **Unsupported** for every version; explicit rejection                                                                                            |
 | Evidence                       | PDF text by page; DOCX by paragraph; UTF-8 TXT/CSV/TSV by line; XLSX by sheet/cell                                                               |
 | Upload limits                  | 10 MB/file; 40 MB expanded Office package; 3,000 ZIP entries; 300 PDF pages; 50,000 text lines/cells; 15-second extraction timeout               |
@@ -99,6 +99,12 @@ No hosted authentication, multi-user roles, billing, enterprise integrations, au
 
 ## From preparation to submission
 
-Exports includes a personalized handoff guide: next actions, the purchaser’s recorded targets, copyable reviewed responses, and a six-step checklist for completing and sending the requested documents. New DOCX and JSON snapshots include that guide. Only currently approved responses enter transfer blocks; drafts and stale approvals remain visible in the full assessment. Copying preserves negative answers, non-applicability reasons, sources, attestations, and reviewer context.
+Exports includes a personalized handoff guide: next actions, the purchaser’s recorded targets, copyable reviewed responses, and a six-step checklist for completing and sending the requested documents. New DOCX, PDF, and JSON snapshots include that guide. Only currently approved responses enter transfer blocks; drafts and stale approvals remain visible in the full assessment. Copying preserves negative answers, non-applicability reasons, sources, attestations, and reviewer context.
 
 “Completed preparation package” means the recorded preparation checklist is complete. The user still needs to obtain the purchaser’s exact documents, match responses to actual questions, finish all required coverage, check the resulting files, and send them through the agreed channel. Original preparation IDs are never claimed to map to official question IDs. Previously issued snapshots retain their original labels and contents.
+
+## CU colors and app description
+
+The interface and new reports use CU blue (PMS 2955, web #003A63) and gold (PMS 130, web #FDB813). PDF download is available for new snapshots; older issued files stay unchanged. PDF generation runs locally in Node and requires no external conversion service. See [brand details](docs/BRANDING.md) and [reusable app description](docs/APP_DESCRIPTION.md).
+
+A [synthetic CU-colored sample PDF](docs/examples/acronym-cu-sample.pdf) is included for preview. Generate a fresh local sample with `node --import tsx scripts/qa-report.ts`.

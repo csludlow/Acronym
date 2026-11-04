@@ -28,6 +28,23 @@ export class Store {
         "utf8",
       ),
     );
+    if (
+      !this.db.prepare("SELECT version FROM migrations WHERE version=2").get()
+    ) {
+      this.db.exec("BEGIN");
+      try {
+        this.db.exec(
+          readFileSync(
+            new URL("../migrations/002_pdf.sql", import.meta.url),
+            "utf8",
+          ),
+        );
+        this.db.exec("COMMIT");
+      } catch (error) {
+        this.db.exec("ROLLBACK");
+        throw error;
+      }
+    }
   }
   list() {
     return (

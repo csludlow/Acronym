@@ -5,8 +5,8 @@ Verified locally on **2026-11-04**, macOS, Node **24.22.1**, installed Google Ch
 | Check                                     | Result                                                                          |
 | ----------------------------------------- | ------------------------------------------------------------------------------- |
 | TypeScript strict type checking           | Passed                                                                          |
-| Vite production build                     | Passed; 125 modules built                                                       |
-| Domain, storage, API, and document tests  | **22 passed, 0 failed**                                                         |
+| Vite production build                     | Passed; 126 modules built                                                       |
+| Domain, storage, API, and document tests  | **25 passed, 0 failed**                                                         |
 | Playwright browser tests                  | **2 passed, 0 failed**                                                          |
 | Generic DOCX render and visual inspection | Passed; all 8 pages of a synthetic sample inspected after LibreOffice rendering |
 | Dashboard visual inspection               | Passed; synthetic screenshot in `screenshots/dashboard.png`                     |
@@ -59,3 +59,7 @@ Local document QA used `scripts/qa-report.ts` and the environment’s bundled Li
 ## Guided handoff verification
 
 Four additional tests cover prioritized next actions, explicit unknown purchaser standards, transfer blocks restricted to approved responses, preservation of No and justified non-applicability, immutable exported handoff text, failure-containing accessibility judgments, invalidation after test changes, and continuing submission steps after preparation is complete. The browser workflow verifies actual clipboard contents, readable fallback text, and navigation from the overview through the handoff to Product setup. DOCX round-trip assertions include the next steps and submission checklist; all eight sample pages were rendered and inspected.
+
+## CU colors and PDF verification
+
+PDFKit exports the same report blocks as DOCX, with embedded Noto Sans, text structure tags, CU blue headers and gold accents. Three additional tests cover PDF text/tag preservation, non-destructive migration from an older database, and readable CU foreground combinations. API tests verify PDF MIME type and byte stability; browser tests verify the primary button color and PDF download. The eight-page synthetic PDF was rendered with Poppler and visually inspected, along with the eight-page DOCX. Blue/gold sample pixels were checked on every PDF page. No full PDF/UA audit or spot-color printing verification is claimed.

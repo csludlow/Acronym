@@ -1,4 +1,5 @@
 import express from "express";
+import { renderPDF } from "./pdf.ts";
 import multer from "multer";
 import { z, ZodError } from "zod";
 import { basename } from "node:path";
@@ -155,10 +156,13 @@ export function createApp(store: Store) {
     );
     for (const e of a.evidence) store.file(e.hash);
     const s = snapshot(a, b.final, b.reviewer),
-      docx = await renderReport(s);
+      docx = await renderReport(s),
+      pdf = await renderPDF(s);
     store.db
-      .prepare("INSERT INTO snapshots VALUES (?,?,?,?,?)")
-      .run(s.id, a.id, s.createdAt, JSON.stringify(s), docx);
+      .prepare(
+        "INSERT INTO snapshots (id,assessment_id,created_at,body,docx,pdf) VALUES (?,?,?,?,?,?)",
+      )
+      .run(s.id, a.id, s.createdAt, JSON.stringify(s), docx, pdf);
     res
       .status(201)
       .json({ id: s.id, status: s.status, createdAt: s.createdAt });
@@ -168,15 +172,16 @@ export function createApp(store: Store) {
     res.json(
       store.db
         .prepare(
-          "SELECT id,created_at as createdAt,json_extract(body,'$.status') as status FROM snapshots WHERE assessment_id=? ORDER BY created_at DESC",
+          "SELECT id,created_at as createdAt,json_extract(body,'$.status') as status, pdf IS NOT NULL as hasPDF FROM snapshots WHERE assessment_id=? ORDER BY created_at DESC",
         )
         .all(req.params.id),
     );
   });
   app.get("/api/exports/:id/:format", (req, res) => {
     const row = store.db
-      .prepare("SELECT body,docx FROM snapshots WHERE id=?")
-      .get(req.params.id) as { body: string; docx: Uint8Array } | undefined;
+      .prepare("SELECT body,docx,pdf FROM snapshots WHERE id=?")
+      .get(req.params.id) as
+      { body: string; docx: Uint8Array; pdf: Uint8Array | null } | undefined;
     demand(row, "Export not found.");
     if (req.params.format === "json")
       res
@@ -190,7 +195,17 @@ export function createApp(store: Store) {
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         )
         .send(Buffer.from(row.docx));
-    else throw new DomainError("Unsupported export format.");
+    else if (req.params.format === "pdf") {
+      if (!row.pdf)
+        throw new DomainError(
+          "This older snapshot predates PDF support. Create a new preparation snapshot to download a PDF.",
+          422,
+        );
+      res
+        .attachment(`assessment-${req.params.id}.pdf`)
+        .type("application/pdf")
+        .send(Buffer.from(row.pdf));
+    } else throw new DomainError("Unsupported export format.");
   });
   app.post("/api/official-export", (req, res) => {
     const b = z

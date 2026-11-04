@@ -89,6 +89,17 @@ test("HTTP workflow works without AI; upload, review, snapshot, and local reques
       await (await fetch(`${base}/exports/${s.id}/json`)).text(),
       before,
     );
+    const pdf = await fetch(`${base}/exports/${s.id}/pdf`);
+    assert.equal(pdf.status, 200);
+    assert.match(pdf.headers.get("content-type")!, /application\/pdf/);
+    const pdfBytes = Buffer.from(await pdf.arrayBuffer());
+    assert.equal(pdfBytes.subarray(0, 5).toString(), "%PDF-");
+    assert.deepEqual(
+      Buffer.from(
+        await (await fetch(`${base}/exports/${s.id}/pdf`)).arrayBuffer(),
+      ),
+      pdfBytes,
+    );
     const doc = await fetch(`${base}/exports/${s.id}/docx`);
     assert.equal(doc.status, 200);
     assert.match(doc.headers.get("content-type")!, /wordprocessingml/);

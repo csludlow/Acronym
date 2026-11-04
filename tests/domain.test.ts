@@ -29,7 +29,7 @@ test("SQLite saves the entire assessment and recovers after closing and restarti
   assert.deepEqual(store.get(a.id), a);
   assert.equal(
     store.db.prepare("SELECT count(*) AS n FROM migrations").get()!.n,
-    1,
+    2,
   );
   assert.throws(() => store.save({ ...a, revision: 2 }, 0), /another tab/);
   store.close();

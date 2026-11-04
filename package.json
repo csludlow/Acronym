@@ -26,7 +26,8 @@
     "tsx": "^4.20.6",
     "zod": "^4.1.12",
     "fflate": "^0.8.2",
-    "fast-xml-parser": "^5.3.1"
+    "fast-xml-parser": "^5.3.1",
+    "pdfkit": "^0.20.2"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
@@ -38,6 +39,7 @@
     "@vitejs/plugin-react": "^5.1.0",
     "typescript": "^5.9.3",
     "vite": "^7.2.0",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "@types/pdfkit": "^0.17.3"
   }
 }

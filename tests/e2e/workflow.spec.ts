@@ -13,6 +13,9 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
   await page
     .getByLabel("Vendor name", { exact: true })
     .fill("Synthetic Vendor E2E");
+  await expect(
+    page.getByRole("button", { name: "Save product setup" }),
+  ).toHaveCSS("background-color", "rgb(0, 58, 99)");
   await page.getByRole("button", { name: "Save product setup" }).click();
   await expect(page.getByRole("status")).toContainText("Saved locally");
   await page.getByRole("button", { name: /03 Evidence/ }).click();
@@ -109,6 +112,9 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
   const download = page.waitForEvent("download");
   await page.getByRole("link", { name: "Download DOCX" }).click();
   expect((await download).suggestedFilename()).toMatch(/\.docx$/);
+  const pdfDownload = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download PDF", exact: true }).click();
+  expect((await pdfDownload).suggestedFilename()).toMatch(/\.pdf$/);
   const id = await page.getByLabel("Current assessment").inputValue();
   await page.reload();
   await page.getByLabel("Current assessment").selectOption(id);
@@ -120,6 +126,11 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
   await expect(page.getByLabel("Response", { exact: true })).toHaveValue("No");
   await expect(page.getByText("synthetic-policy.txt · Line 1")).toBeVisible();
   await page.getByRole("button", { name: /01 Overview/ }).click();
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+    if (document.activeElement instanceof HTMLElement)
+      document.activeElement.blur();
+  });
   await page.screenshot({ path: ".local/qa/dashboard.png", fullPage: true });
   await page.getByRole("button", { name: "Open your handoff guide →" }).click();
   await expect(

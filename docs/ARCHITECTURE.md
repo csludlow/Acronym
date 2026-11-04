@@ -42,3 +42,5 @@ No CU Launch protocol or deployment configuration was supplied, so none is inven
 4. If adding AI, require opt-in disclosure of exactly what leaves the machine, server-side credentials, evidence exclusions, citation verification, and suggestion-only commands. Source text remains data, including instructions embedded in documents.
 
 The current JSON export is intentionally specific to Acronym; implement OpenACR as a separately validated adapter rather than relabeling it.
+
+PDF support uses `migrations/002_pdf.sql` to add nullable PDF bytes without changing old snapshots. New snapshots store DOCX and PDF bytes together; older snapshots return a visible PDF-unavailable response. `server/export.ts` creates shared report blocks and DOCX; `server/pdf.ts` renders those same blocks locally through PDFKit with bundled open-license fonts. Branding values and reusable descriptions are in `shared/brand.ts`.

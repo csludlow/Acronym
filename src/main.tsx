@@ -16,6 +16,7 @@ import {
   type Evidence,
 } from "../shared/model";
 import { handoff } from "../shared/handoff";
+import { appDescription } from "../shared/brand";
 import "./style.css";
 type Summary = {
   id: string;
@@ -23,7 +24,12 @@ type Summary = {
   vendor: string;
   synthetic: boolean;
 };
-type ExportItem = { id: string; createdAt: string; status: string };
+type ExportItem = {
+  hasPDF: number;
+  id: string;
+  createdAt: string;
+  status: string;
+};
 const tabs = [
   "Overview",
   "Product setup",
@@ -450,7 +456,7 @@ function App() {
                       Exports:
                         "Create a fixed, editable record of the assessment.",
                     }[tab]
-                  : "Bring product details, evidence, security responses, and accessibility findings into one local workspace."}
+                  : appDescription}
               </p>
             </div>
             {a && <span className="revision">Saved revision {a.revision}</span>}
@@ -1783,9 +1789,9 @@ function Exports({
       <Handoff a={a} go={go} />
       <Card title="Download your preparation package">
         <p>
-          One stable snapshot, two editable formats. Includes product details,
-          responses, source references, accessibility findings, review history,
-          and outstanding issues.
+          One stable snapshot: editable DOCX, a shareable PDF, and structured
+          JSON. Includes product details, responses, source references,
+          accessibility findings, review history, and outstanding issues.
         </p>
         <div className="notice">
           Download the editable DOCX to continue writing, share it with your
@@ -1842,6 +1848,16 @@ function Exports({
                 >
                   Download DOCX
                 </a>
+                {s.hasPDF ? (
+                  <a
+                    className="button secondary"
+                    href={`/api/exports/${s.id}/pdf`}
+                  >
+                    Download PDF
+                  </a>
+                ) : (
+                  <small>Create a new snapshot for a CU-colored PDF.</small>
+                )}
                 <a
                   className="button secondary"
                   href={`/api/exports/${s.id}/json`}

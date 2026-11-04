@@ -1,5 +1,6 @@
 import {
   Document,
+  Header,
   Packer,
   Paragraph,
   TextRun,
@@ -15,6 +16,7 @@ import {
   type Assessment,
 } from "../shared/model.ts";
 import { handoff } from "../shared/handoff.ts";
+import { brand } from "../shared/brand.ts";
 import { demand } from "./domain.ts";
 export function snapshot(a: Assessment, final: boolean, reviewer: string) {
   const issues = outstanding(a);
@@ -41,40 +43,23 @@ export function snapshot(a: Assessment, final: boolean, reviewer: string) {
   };
 }
 export type Snapshot = ReturnType<typeof snapshot>;
-export async function renderReport(s: Snapshot) {
+export type ReportBlock = {
+  kind: "title" | "heading1" | "heading2" | "body";
+  text: string;
+};
+export function reportBlocks(s: Snapshot): ReportBlock[] {
   const a = s.assessment;
-  const p = (text: string) =>
-    new Paragraph({
-      children: [new TextRun(text)],
-      spacing: { after: 100 },
-      widowControl: true,
-    });
-  const h = (text: string) =>
-    new Paragraph({
-      text,
-      heading: HeadingLevel.HEADING_1,
-      spacing: { before: 240, after: 140 },
-      keepNext: true,
-    });
-  const label = (label: string, value: string) =>
-    new Paragraph({
-      children: [
-        new TextRun({ text: `${label}: `, bold: true }),
-        new TextRun(value || "Not provided"),
-      ],
-      spacing: { after: 100 },
-      widowControl: true,
-    });
+  const p = (text: string): ReportBlock => ({ kind: "body", text });
+  const h = (text: string): ReportBlock => ({ kind: "heading1", text });
+  const label = (label: string, value: string): ReportBlock =>
+    p(`${label}: ${value || "Not provided"}`);
   const ref = (r: Assessment["answers"][string]["references"][number]) => {
     const e = a.evidence.find((e) => e.id === r.evidenceId);
     return `${e?.fileName ?? r.evidenceId}, ${r.locator}${r.quote ? ` — ${r.quote}` : ""} [SHA-256 ${e?.hash ?? "missing"}]`;
   };
   const guide = s.handoff ?? handoff(a);
   const children = [
-    new Paragraph({
-      text: "Vendor Assessment Report",
-      heading: HeadingLevel.TITLE,
-    }),
+    { kind: "title" as const, text: "Vendor Assessment Preparation Guide" },
     p(s.status),
     p(
       `${a.product.details.vendor} · ${a.product.details.product} · ${a.product.details.version}`,
@@ -136,11 +121,7 @@ export async function renderReport(s: Snapshot) {
   for (const q of questions) {
     const v = a.answers[q.id];
     children.push(
-      new Paragraph({
-        text: `${q.id} ${q.wording}`,
-        heading: HeadingLevel.HEADING_2,
-        keepNext: true,
-      }),
+      { kind: "heading2", text: `${q.id} ${q.wording}` },
       label("Response", v.response || "Unanswered"),
       label("Applicability", v.applicability),
       label("Applicability reason", v.applicabilityReason),
@@ -201,13 +182,7 @@ export async function renderReport(s: Snapshot) {
       ),
     );
   for (const t of a.tests) {
-    children.push(
-      new Paragraph({
-        text: `Test ${t.id}`,
-        heading: HeadingLevel.HEADING_2,
-        keepNext: true,
-      }),
-    );
+    children.push({ kind: "heading2", text: `Test ${t.id}` });
     for (const [key, val] of Object.entries(t).filter(
       ([k]) => k !== "references",
     ))
@@ -277,6 +252,29 @@ export async function renderReport(s: Snapshot) {
       "The companion JSON preserves complete prior values and command payloads for every recorded revision. Reviewer names are acknowledgments, not verified identities or cryptographic signatures.",
     ),
   );
+  return children;
+}
+export async function renderReport(s: Snapshot) {
+  const children = reportBlocks(s).map(
+    (block) =>
+      new Paragraph({
+        text: block.text,
+        heading:
+          block.kind === "title"
+            ? HeadingLevel.TITLE
+            : block.kind === "heading1"
+              ? HeadingLevel.HEADING_1
+              : block.kind === "heading2"
+                ? HeadingLevel.HEADING_2
+                : undefined,
+        spacing: {
+          before: block.kind === "heading1" ? 240 : 0,
+          after: block.kind === "body" ? 100 : 140,
+        },
+        keepNext: block.kind !== "body",
+        widowControl: true,
+      }),
+  );
   return Packer.toBuffer(
     new Document({
       creator: "Acronym local assessment workspace",
@@ -322,12 +320,33 @@ export async function renderReport(s: Snapshot) {
               margin: { top: 1080, bottom: 1080, left: 1080, right: 1080 },
             },
           },
+          headers: {
+            default: new Header({
+              children: [
+                new Paragraph({
+                  shading: { fill: brand.primary },
+                  spacing: { after: 180 },
+                  children: [
+                    new TextRun({
+                      text: "  ACRONYM  |  VENDOR ASSESSMENT GUIDE",
+                      bold: true,
+                      color: brand.secondary,
+                      size: 20,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          },
           footers: {
             default: new Footer({
               children: [
                 new Paragraph({
                   children: [
-                    new TextRun(`${s.status} · Page `),
+                    new TextRun({
+                      text: `${s.status} · Page `,
+                      color: brand.primary,
+                    }),
                     new TextRun({ children: [PageNumber.CURRENT] }),
                   ],
                 }),
