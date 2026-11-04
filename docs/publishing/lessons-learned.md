@@ -16,3 +16,9 @@ Record manual fixes and deployment blockers here.
 The app remains a local single-user prototype: loopback binding, localhost Host/Origin checks, SQLite/local evidence storage, and no user isolation. A public Azure URL needs a deliberate hosted access/storage design; package import compatibility and a successful upload do not establish that. The requested service choices still add no managed database or Entra login. Do not remove the local request boundary merely to obtain a successful health probe.
 
 References: [Azure login inputs](https://github.com/Azure/login), [GitHub action-runtime transition](https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/). No Azure settings or resources were changed during repository diagnosis.
+
+## Font-kit investigation
+
+Holding the Adobe stylesheet request open reproduced a blank/unavailable first screen with the original header link: the named author field never appeared within the test timeout. Immediate font-request rejection in the existing offline tests had not caught this case. Move the optional kit to a React effect with nonmatching media during download, applying it after load. The same regression now creates an assessment and downloads its PDF while the request remains stalled.
+
+Build and Node startup contain no Adobe fetch or font-readiness wait. PDF generation resolves local fonts when a report is requested; a missing `CU_PDF_FONT_DIR` file can fail a report but is not read during startup. The four fallback font files total about 2.3 MB. The typography commit did not change the package dependencies or server listener. This establishes a browser-loading defect, not the cause of OneDeploy's HTTP 503. Azure-side service diagnostics are still needed; no live cause is inferred from the local tests.

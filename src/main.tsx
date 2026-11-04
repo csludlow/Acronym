@@ -274,6 +274,22 @@ function App() {
     [dirty, setDirty] = useState(false);
   const refresh = async () => setList(await api("/assessments"));
   useEffect(() => {
+    // Optional branding must never delay the first screen or assessment work.
+    const fonts = document.createElement("link");
+    fonts.rel = "stylesheet";
+    fonts.href = "https://use.typekit.net/yya5cit.css";
+    fonts.media = "print";
+    const apply = () => {
+      fonts.media = "all";
+    };
+    fonts.addEventListener("load", apply, { once: true });
+    document.head.append(fonts);
+    return () => {
+      fonts.removeEventListener("load", apply);
+      fonts.remove();
+    };
+  }, []);
+  useEffect(() => {
     refresh().catch((e) => setError(e.message));
   }, []);
   useEffect(() => {

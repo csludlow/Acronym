@@ -12,8 +12,8 @@ Node and the test tools were invoked directly from the bundled runtime because n
 | ----------------------------------------- | ------------------------------------------------------------------------------- |
 | TypeScript strict type checking           | Passed                                                                          |
 | Vite production build                     | Passed; 126 modules built                                                       |
-| Domain, storage, API, and document tests  | **27 passed, 0 failed**                                                         |
-| Playwright browser tests                  | **2 passed, 0 failed**                                                          |
+| Domain, storage, API, document, deployment-preflight tests | **30 passed, 0 failed**                                              |
+| Playwright browser tests                  | **3 passed, 0 failed**                                                          |
 | Generic DOCX render and visual inspection | Passed; all 8 pages of a synthetic sample inspected after LibreOffice rendering |
 | Dashboard visual inspection               | Passed; synthetic screenshot in `screenshots/dashboard.png`                     |
 
@@ -71,5 +71,7 @@ Four additional tests cover prioritized next actions, explicit unknown purchaser
 PDFKit exports the same report blocks as DOCX, with embedded Noto Sans, text structure tags, CU blue headers and gold accents. Three additional tests cover PDF text/tag preservation, non-destructive migration from an older database, and readable CU foreground combinations. API tests verify PDF MIME type and byte stability; browser tests verify the primary button color and PDF download. The eight-page synthetic PDF was rendered with Poppler and visually inspected, along with the eight-page DOCX. Blue/gold sample pixels were checked on every PDF page. No full PDF/UA audit or spot-color printing verification is claimed.
 
 ## CU typography verification
+
+The font-outage regression now holds the Adobe stylesheet request open while completing setup and downloading a PDF. It failed before the non-blocking font loader and passed afterward. Offline rejection and a stalled network request are both covered. The optional live-font verification waits for asynchronously loaded faces rather than assuming page navigation waits for fonts. The full synthetic workflow also passed with real Minion/Myriad faces loaded after this change.
 
 The published Adobe kit `yya5cit` was verified in Chrome: Minion Pro regular and Myriad Pro bold both returned loaded font faces from `document.fonts.load`, and the complete workflow passed (2 browser tests). Default browser tests block Adobe requests to check offline fallback operation separately. Two new backend tests verify DOCX font roles without commercial-font embedding and explicit PDF fallback/incomplete-configuration behavior. The nine-page fallback PDF was rendered with Poppler and all pages inspected. Actual Minion/Myriad PDF embedding remains unverified because server-licensed font files have not been supplied. DOCX XML references were checked; exact desktop rendering depends on the recipient’s installed licensed fonts.

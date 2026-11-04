@@ -10,22 +10,24 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
 }) => {
   await page.goto("/");
   if (process.env.CU_VERIFY_FONTS === "1") {
-    const faces = await page.evaluate(async () => {
-      const result = await Promise.all(
-        ['400 17px "minion-pro"', '700 20px "myriad-pro"'].map((f) =>
-          document.fonts.load(f),
+    await expect(async () => {
+      const faces = await page.evaluate(async () => {
+        const result = await Promise.all(
+          ['400 17px "minion-pro"', '700 20px "myriad-pro"'].map((f) =>
+            document.fonts.load(f),
+          ),
+        );
+        return result.map((fonts) =>
+          fonts.map((f) => ({ family: f.family, status: f.status })),
+        );
+      });
+      expect(
+        faces.every(
+          (fonts) =>
+            fonts.length > 0 && fonts.every((f) => f.status === "loaded"),
         ),
-      );
-      return result.map((fonts) =>
-        fonts.map((f) => ({ family: f.family, status: f.status })),
-      );
-    });
-    expect(
-      faces.every(
-        (fonts) =>
-          fonts.length > 0 && fonts.every((f) => f.status === "loaded"),
-      ),
-    ).toBe(true);
+      ).toBe(true);
+    }).toPass({ timeout: 15000 });
   }
   await page.getByLabel("Your name", { exact: true }).fill("Morgan Demo");
   await page
