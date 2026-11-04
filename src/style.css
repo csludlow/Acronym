@@ -2,12 +2,9 @@
   --cu-blue: #003a63;
   --cu-gold: #fdb813;
   --cu-blue-dark: #002c4b;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  --font-body: "minion-pro", "Minion Pro", Georgia, serif;
+  --font-heading: "myriad-pro", "Myriad Pro", Arial, sans-serif;
+  font-family: var(--font-body);
   color: #243a3a;
   background: #f5f6f7;
   font-synthesis: none;
@@ -188,7 +185,7 @@ aside {
   border-radius: 11px;
   background: #24445f;
   color: white;
-  font-family: Georgia, serif;
+  font-family: var(--font-heading);
   font-size: 30px;
   padding: 0 11px 6px;
   line-height: 1.4;
@@ -839,4 +836,51 @@ h1,
 h2,
 h3 {
   color: var(--cu-blue);
+}
+
+/* CU typography roles: Minion body copy; Myriad headings, UI and callouts. */
+:root {
+  font-size: 17px;
+}
+h1,
+h2,
+h3,
+.brand,
+.brand-mark,
+nav,
+button,
+.button,
+input,
+select,
+textarea,
+label,
+legend,
+summary,
+.badge,
+.eyebrow,
+.breadcrumb,
+.local,
+.revision,
+.metric,
+.step > span,
+.issue-list,
+small,
+footer {
+  font-family: var(--font-heading);
+}
+button,
+.button,
+input,
+select,
+textarea {
+  font-size: 15px;
+}
+.lead {
+  font-size: 17px;
+}
+.excerpt,
+pre,
+code {
+  font-family: var(--font-body);
+  font-size: 16px;
 }

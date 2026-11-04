@@ -29,7 +29,7 @@ NODE_ENV=production pnpm start
 
 On PowerShell, set `$env:NODE_ENV="production"` before `pnpm start`.
 
-The server always binds to `127.0.0.1`. `PORT` changes its port and `DATA_DIR` changes the local data directory. No external font, analytics, telemetry, or AI endpoint is used by the app. Browser tests use a separate `.local/e2e-data` directory.
+The server always binds to `127.0.0.1`. `PORT` changes its port and `DATA_DIR` changes the local data directory. The CU font kit loads from Adobe Fonts; the app works offline with fallback fonts. No analytics, telemetry, or AI endpoint is used by the application code. Browser tests use a separate `.local/e2e-data` directory.
 
 An npm-only installation also works with `npm install`, followed by the same `npm run dev`, `npm run build`, and `npm start` commands; it does not use the pnpm lockfile. Prefer pnpm for reproducibility.
 
@@ -108,3 +108,7 @@ Exports includes a personalized handoff guide: next actions, the purchaser’s r
 The interface and new reports use CU blue (PMS 2955, web #003A63) and gold (PMS 130, web #FDB813). PDF download is available for new snapshots; older issued files stay unchanged. PDF generation runs locally in Node and requires no external conversion service. See [brand details](docs/BRANDING.md) and [reusable app description](docs/APP_DESCRIPTION.md).
 
 A [synthetic CU-colored sample PDF](docs/examples/acronym-cu-sample.pdf) is included for preview. Generate a fresh local sample with `node --import tsx scripts/qa-report.ts`.
+
+## CU typography
+
+The app loads Minion Pro for body copy and Myriad Pro for headings and controls from Adobe kit `yya5cit`. New DOCX reports reference those fonts. Exact PDF embedding requires private, appropriately licensed font files; otherwise PDF exports include an explicit fallback-font note. See [typography setup and deployment instructions](docs/TYPOGRAPHY.md).

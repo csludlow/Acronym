@@ -11,6 +11,8 @@ Source: [CU Creative Services brand guide](https://www.cedarville.edu/offices/cr
 
 Blue is used for primary actions, links, and PDF headings. Gold accents identify the app mark, navigation, progress accents, and report banners. Blue text on gold and gold text on blue preserve contrast; gold is not used as small text on white. Keyboard focus uses a blue outline with a gold outer ring. Error messages retain a separate error color and explicit text.
 
-The PDF embeds Noto Sans, distributed with its SIL Open Font License in `assets/fonts/LICENSE`. Source: [Noto fonts](https://github.com/notofonts/noto-fonts). Fonts support common Latin, Greek, and Cyrillic text; complete coverage of every writing system is not claimed. PDF structure tags and selectable text are included; a full PDF/UA audit has not been performed.
+When licensed CU report fonts are not configured, the PDF embeds Noto Serif for body text and Noto Sans for headings, distributed with their SIL Open Font License in `assets/fonts/LICENSE`. Source: [Noto fonts](https://github.com/notofonts/noto-fonts). Fonts support common Latin, Greek, and Cyrillic text; complete coverage of every writing system is not claimed. PDF structure tags and selectable text are included; a full PDF/UA audit has not been performed.
 
 Issued snapshots keep their original files. Newly created snapshots include a stored PDF alongside DOCX/JSON. Older snapshots return an explicit PDF-unavailable message; create a new snapshot to obtain the CU-colored PDF.
+
+Typography follows [CU’s Minion/Myriad guide](https://www.cedarville.edu/offices/creative-services/brand/fonts). The Adobe web kit and report-font requirements are documented in [TYPOGRAPHY.md](TYPOGRAPHY.md).

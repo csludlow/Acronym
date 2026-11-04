@@ -1,5 +1,5 @@
 import PDFDocument from "pdfkit";
-import { fileURLToPath } from "node:url";
+import { reportFonts } from "./report-fonts.ts";
 import { brand } from "../shared/brand.ts";
 import { reportBlocks, type Snapshot } from "./export.ts";
 
@@ -22,21 +22,14 @@ export function renderPDF(snapshot: Snapshot): Promise<Buffer> {
     doc.on("data", (b) => chunks.push(b));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
-    doc.registerFont(
-      "Regular",
-      fileURLToPath(
-        new URL("../assets/fonts/NotoSans-Regular.ttf", import.meta.url),
-      ),
-    );
-    doc.registerFont(
-      "Bold",
-      fileURLToPath(
-        new URL("../assets/fonts/NotoSans-Bold.ttf", import.meta.url),
-      ),
-    );
+    const fonts = reportFonts();
+    for (const [role, path] of Object.entries(fonts.files))
+      doc.registerFont(role, path);
     const root = doc.struct("Document");
     doc.addStructure(root);
-    for (const block of reportBlocks(snapshot)) {
+    const blocks = reportBlocks(snapshot);
+    if (fonts.note) blocks.splice(1, 0, { kind: "body", text: fonts.note });
+    for (const block of blocks) {
       const heading = block.kind !== "body",
         size =
           block.kind === "title"
@@ -46,7 +39,7 @@ export function renderPDF(snapshot: Snapshot): Promise<Buffer> {
               : block.kind === "heading2"
                 ? 11
                 : 9;
-      doc.font(heading ? "Bold" : "Regular").fontSize(size);
+      doc.font(heading ? "HeadingBold" : "BodyRegular").fontSize(size);
       const required =
         doc.heightOfString(block.text, { width: 504, lineGap: 2 }) +
         (heading ? 30 : 8);
@@ -78,14 +71,14 @@ export function renderPDF(snapshot: Snapshot): Promise<Buffer> {
       doc.rect(0, 0, 612, 47).fill("#" + brand.primary);
       doc.rect(0, 47, 612, 4).fill("#" + brand.secondary);
       doc
-        .font("Bold")
+        .font("HeadingBold")
         .fontSize(10)
         .fillColor("#" + brand.secondary)
         .text("ACRONYM  /  VENDOR ASSESSMENT GUIDE", 54, 17, {
           lineBreak: false,
         });
       doc
-        .font("Regular")
+        .font("HeadingRegular")
         .fontSize(8)
         .fillColor("#" + brand.primary)
         .text(

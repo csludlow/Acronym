@@ -1,8 +1,32 @@
 import { test, expect } from "@playwright/test";
+test.beforeEach(async ({ page }) => {
+  if (process.env.CU_VERIFY_FONTS !== "1")
+    await page.route(/https:\/\/(?:use|p)\.typekit\.net\//, (route) =>
+      route.abort(),
+    );
+});
 test("synthetic vendor can create, attach evidence, answer, test, review, export and reload", async ({
   page,
 }) => {
   await page.goto("/");
+  if (process.env.CU_VERIFY_FONTS === "1") {
+    const faces = await page.evaluate(async () => {
+      const result = await Promise.all(
+        ['400 17px "minion-pro"', '700 20px "myriad-pro"'].map((f) =>
+          document.fonts.load(f),
+        ),
+      );
+      return result.map((fonts) =>
+        fonts.map((f) => ({ family: f.family, status: f.status })),
+      );
+    });
+    expect(
+      faces.every(
+        (fonts) =>
+          fonts.length > 0 && fonts.every((f) => f.status === "loaded"),
+      ),
+    ).toBe(true);
+  }
   await page.getByLabel("Your name", { exact: true }).fill("Morgan Demo");
   await page
     .getByRole("button", { name: "Explore synthetic demo", exact: true })

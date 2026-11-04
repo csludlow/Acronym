@@ -16,7 +16,7 @@ import {
   type Assessment,
 } from "../shared/model.ts";
 import { handoff } from "../shared/handoff.ts";
-import { brand } from "../shared/brand.ts";
+import { brand, typography } from "../shared/brand.ts";
 import { demand } from "./domain.ts";
 export function snapshot(a: Assessment, final: boolean, reviewer: string) {
   const issues = outstanding(a);
@@ -283,7 +283,7 @@ export async function renderReport(s: Snapshot) {
       styles: {
         default: {
           document: {
-            run: { font: "Arial", size: 22, color: "000000" },
+            run: { font: typography.body, size: 22, color: "000000" },
             paragraph: { spacing: { line: 276 } },
           },
         },
@@ -292,7 +292,12 @@ export async function renderReport(s: Snapshot) {
             id: "Title",
             name: "Title",
             basedOn: "Normal",
-            run: { font: "Arial", size: 40, bold: true, color: "000000" },
+            run: {
+              font: typography.heading,
+              size: 40,
+              bold: true,
+              color: "000000",
+            },
           },
           {
             id: "Heading1",
@@ -300,7 +305,12 @@ export async function renderReport(s: Snapshot) {
             basedOn: "Normal",
             next: "Normal",
             quickFormat: true,
-            run: { size: 28, bold: true, color: "000000" },
+            run: {
+              font: typography.heading,
+              size: 28,
+              bold: true,
+              color: "000000",
+            },
           },
           {
             id: "Heading2",
@@ -308,7 +318,12 @@ export async function renderReport(s: Snapshot) {
             basedOn: "Normal",
             next: "Normal",
             quickFormat: true,
-            run: { size: 24, bold: true, color: "000000" },
+            run: {
+              font: typography.heading,
+              size: 24,
+              bold: true,
+              color: "000000",
+            },
           },
         ],
       },
@@ -329,6 +344,7 @@ export async function renderReport(s: Snapshot) {
                   children: [
                     new TextRun({
                       text: "  ACRONYM  |  VENDOR ASSESSMENT GUIDE",
+                      font: typography.heading,
                       bold: true,
                       color: brand.secondary,
                       size: 20,
@@ -345,9 +361,13 @@ export async function renderReport(s: Snapshot) {
                   children: [
                     new TextRun({
                       text: `${s.status} · Page `,
+                      font: typography.heading,
                       color: brand.primary,
                     }),
-                    new TextRun({ children: [PageNumber.CURRENT] }),
+                    new TextRun({
+                      font: typography.heading,
+                      children: [PageNumber.CURRENT],
+                    }),
                   ],
                 }),
               ],

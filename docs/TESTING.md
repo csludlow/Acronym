@@ -6,7 +6,7 @@ Verified locally on **2026-11-04**, macOS, Node **24.22.1**, installed Google Ch
 | ----------------------------------------- | ------------------------------------------------------------------------------- |
 | TypeScript strict type checking           | Passed                                                                          |
 | Vite production build                     | Passed; 126 modules built                                                       |
-| Domain, storage, API, and document tests  | **25 passed, 0 failed**                                                         |
+| Domain, storage, API, and document tests  | **27 passed, 0 failed**                                                         |
 | Playwright browser tests                  | **2 passed, 0 failed**                                                          |
 | Generic DOCX render and visual inspection | Passed; all 8 pages of a synthetic sample inspected after LibreOffice rendering |
 | Dashboard visual inspection               | Passed; synthetic screenshot in `screenshots/dashboard.png`                     |
@@ -63,3 +63,7 @@ Four additional tests cover prioritized next actions, explicit unknown purchaser
 ## CU colors and PDF verification
 
 PDFKit exports the same report blocks as DOCX, with embedded Noto Sans, text structure tags, CU blue headers and gold accents. Three additional tests cover PDF text/tag preservation, non-destructive migration from an older database, and readable CU foreground combinations. API tests verify PDF MIME type and byte stability; browser tests verify the primary button color and PDF download. The eight-page synthetic PDF was rendered with Poppler and visually inspected, along with the eight-page DOCX. Blue/gold sample pixels were checked on every PDF page. No full PDF/UA audit or spot-color printing verification is claimed.
+
+## CU typography verification
+
+The published Adobe kit `yya5cit` was verified in Chrome: Minion Pro regular and Myriad Pro bold both returned loaded font faces from `document.fonts.load`, and the complete workflow passed (2 browser tests). Default browser tests block Adobe requests to check offline fallback operation separately. Two new backend tests verify DOCX font roles without commercial-font embedding and explicit PDF fallback/incomplete-configuration behavior. The nine-page fallback PDF was rendered with Poppler and all pages inspected. Actual Minion/Myriad PDF embedding remains unverified because server-licensed font files have not been supplied. DOCX XML references were checked; exact desktop rendering depends on the recipient’s installed licensed fonts.

@@ -44,3 +44,5 @@ No CU Launch protocol or deployment configuration was supplied, so none is inven
 The current JSON export is intentionally specific to Acronym; implement OpenACR as a separately validated adapter rather than relabeling it.
 
 PDF support uses `migrations/002_pdf.sql` to add nullable PDF bytes without changing old snapshots. New snapshots store DOCX and PDF bytes together; older snapshots return a visible PDF-unavailable response. `server/export.ts` creates shared report blocks and DOCX; `server/pdf.ts` renders those same blocks locally through PDFKit with bundled open-license fonts. Branding values and reusable descriptions are in `shared/brand.ts`.
+
+CU typography uses Adobe web kit `yya5cit` in the browser. Production CSP permits the specific Adobe font/style hosts. `server/report-fonts.ts` resolves private `CU_PDF_FONT_DIR` files for report embedding or selects explicit open-license serif/sans fallbacks. Proprietary font files are never bundled or served by this code. DOCX uses Minion Pro body styles and Myriad Pro heading/callout styles. See `docs/TYPOGRAPHY.md` for kit ownership, the future Launch hostname, and distinct web/report font requirements.

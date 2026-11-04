@@ -11,3 +11,9 @@ playwright-report/
 .DS_Store
 .local/
 output/
+# Commercial CU font assets belong in private deployment storage.
+.private-fonts/
+Minion*.otf
+Minion*.ttf
+Myriad*.otf
+Myriad*.ttf
