@@ -7,6 +7,8 @@ import json
 import os
 import re
 import subprocess
+import tempfile
+import zipfile
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, HTTPRedirectHandler, build_opener
 
@@ -74,6 +76,14 @@ def main():
     report("app", {key: app.get(key) for key in
                    ("state", "availabilityState", "enabled", "httpsOnly",
                     "publicNetworkAccess", "reserved", "usageState")})
+    if app.get("id"):
+        health = az("Azure resource health", ["rest", "--method", "GET", "--url",
+            "https://management.azure.com" + app["id"] +
+            "/providers/Microsoft.ResourceHealth/availabilityStatuses/current?api-version=2025-05-01"])
+        if health:
+            properties = health.get("properties", {})
+            report("Azure resource health", {k: properties.get(k) for k in
+                ("availabilityState", "reasonType", "reportedTime", "occuredTime")})
     config = az("configuration", ["webapp", "config", "show", *scope])
     if config:
         command = config.get("appCommandLine")
@@ -87,6 +97,17 @@ def main():
             "scmUsesMainRestrictions": config.get("scmIpSecurityRestrictionsUseMain"),
             "scmRestrictionActions": [x.get("action") for x in config.get("scmIpSecurityRestrictions", [])],
         })
+    settings = az("startup settings", ["webapp", "config", "appsettings", "list", *scope,
+        "--query", "[?name=='NODE_ENV' || name=='SCM_DO_BUILD_DURING_DEPLOYMENT' || name=='WEBSITES_ENABLE_APP_SERVICE_STORAGE' || name=='CU_PDF_FONT_DIR'].{name:name,value:value}"])
+    if isinstance(settings, list):
+        # Emit only standard boolean/mode values. Font paths never leave the runner.
+        report("startup settings", [{"name": s["name"], "value": s.get("value")
+            if s["name"] != "CU_PDF_FONT_DIR" and s.get("value") in
+            ("true", "false", "1", "0", "production", "development")
+            else "configured (value omitted)"} for s in settings])
+    runtimes = az("node runtime support", ["webapp", "list-runtimes", "--os", "linux"])
+    if isinstance(runtimes, list):
+        report("node runtime support", [r for r in runtimes if isinstance(r, str) and r.startswith("NODE:")])
     plan_id = app.get("serverFarmId")
     if plan_id:
         plan = az("plan", ["appservice", "plan", "show", "--ids", plan_id])
@@ -110,6 +131,34 @@ def main():
     scm = next((h for h in app.get("enabledHostNames", []) if ".scm." in h), None)
     if scm:
         probe("deployment service", scm, "/api/deployments")
+    # Download existing logs only; logging is not enabled or changed here.
+    with tempfile.TemporaryDirectory() as directory:
+        archive = os.path.join(directory, "logs.zip")
+        try:
+            result = subprocess.run(["az", "webapp", "log", "download", *scope,
+                "--log-file", archive, "--only-show-errors"], capture_output=True, text=True, timeout=90)
+            if result.returncode or not os.path.isfile(archive):
+                report("container logs", {"error": "Log download unavailable",
+                    "signals": [s for s in ("503", "403", "401", "Service Unavailable") if s.lower() in result.stderr.lower()]})
+            else:
+                patterns = ("Run npm run build", "Cannot find module", "node:sqlite", "ERR_MODULE_NOT_FOUND",
+                    "ENOENT", "EACCES", "ENOSPC", "out of memory", "npm error", "npm ERR",
+                    "didn't respond to HTTP pings", "failed to start", "failed to pull image", "ImagePullFailure",
+                    "local only, AI disabled", "CU_PDF_FONT_DIR", "typekit", "503")
+                findings = []
+                with zipfile.ZipFile(archive) as logs:
+                    for entry in logs.infolist():
+                        if entry.file_size > 5_000_000 or not entry.filename.lower().endswith((".log", ".txt")):
+                            continue
+                        text = logs.read(entry).decode("utf-8", errors="replace")
+                        signals = [p for p in patterns if p.lower() in text.lower()]
+                        if signals:
+                            findings.append({"kind": "container" if "docker" in entry.filename.lower() else "other", "signals": signals})
+                report("container logs", {"matchedFiles": findings[-20:]})
+        except subprocess.TimeoutExpired:
+            report("container logs", {"error": "Log download timed out"})
+        except (OSError, zipfile.BadZipFile):
+            report("container logs", {"error": "Logs could not be inspected"})
 
 
 if __name__ == "__main__":

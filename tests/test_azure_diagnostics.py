@@ -19,6 +19,8 @@ class AzureDiagnosticsTests(unittest.TestCase):
         fixtures = [
             {"state": "Running", "serverFarmId": "/synthetic-plan", "defaultHostName": "synthetic.azurewebsites.net"},
             {"linuxFxVersion": "NODE|24-lts", "appCommandLine": "start --secret=" + private},
+            [{"name": "CU_PDF_FONT_DIR", "value": private}],
+            ["NODE:24-lts"],
             {"status": "Ready", "sku": {"name": "synthetic"}, "numberOfWorkers": 1},
             [{"status": 3, "message": private}],
             [{"message": "Service Unavailable 503 " + private, "type": 2}],
@@ -27,6 +29,8 @@ class AzureDiagnosticsTests(unittest.TestCase):
 
         def run(args, **kwargs):
             calls.append(args)
+            if args[1:4] == ["webapp", "log", "download"]:
+                return SimpleNamespace(returncode=1, stdout="", stderr="503 " + private)
             return SimpleNamespace(returncode=0, stdout=json.dumps(fixtures.pop(0)), stderr="")
 
         output = io.StringIO()
@@ -36,10 +40,11 @@ class AzureDiagnosticsTests(unittest.TestCase):
             diagnostics.main()
         self.assertNotIn(private, output.getvalue())
         self.assertIn("503", output.getvalue())
-        self.assertEqual([c[1:4] for c in calls[:3]], [
-            ["webapp", "show", "--resource-group"], ["webapp", "config", "show"],
-            ["appservice", "plan", "show"]])
-        self.assertTrue(all(c[1:4] == ["webapp", "log", "deployment"] and c[4] in ("list", "show") for c in calls[3:]))
+        allowed = [("webapp", "show"), ("webapp", "config", "show"),
+            ("webapp", "config", "appsettings", "list"), ("webapp", "list-runtimes"),
+            ("appservice", "plan", "show"), ("webapp", "log", "deployment", "list"),
+            ("webapp", "log", "deployment", "show"), ("webapp", "log", "download")]
+        self.assertTrue(all(any(tuple(c[1:1+len(prefix)]) == prefix for prefix in allowed) for c in calls))
 
     def test_cli_error_text_is_never_emitted(self):
         output = io.StringIO()
