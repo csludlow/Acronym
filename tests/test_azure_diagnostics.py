@@ -21,6 +21,7 @@ class AzureDiagnosticsTests(unittest.TestCase):
             {"linuxFxVersion": "NODE|24-lts", "appCommandLine": "start --secret=" + private},
             [{"name": "CU_PDF_FONT_DIR", "value": private}],
             ["NODE:24-lts"],
+            {"message": "Run npm run build " + private},
             {"status": "Ready", "sku": {"name": "synthetic"}, "numberOfWorkers": 1},
             [{"status": 3, "message": private}],
             [{"message": "Service Unavailable 503 " + private, "type": 2}],
@@ -42,6 +43,7 @@ class AzureDiagnosticsTests(unittest.TestCase):
         self.assertIn("503", output.getvalue())
         allowed = [("webapp", "show"), ("webapp", "config", "show"),
             ("webapp", "config", "appsettings", "list"), ("webapp", "list-runtimes"),
+            ("webapp", "log", "startup", "show"),
             ("appservice", "plan", "show"), ("webapp", "log", "deployment", "list"),
             ("webapp", "log", "deployment", "show"), ("webapp", "log", "download")]
         self.assertTrue(all(any(tuple(c[1:1+len(prefix)]) == prefix for prefix in allowed) for c in calls))

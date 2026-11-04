@@ -34,7 +34,7 @@ def az(label, arguments):
     if result.returncode:
         # Report only recognized error classes, never CLI response text.
         signals = [s for s in ("503", "403", "401", "AuthorizationFailed",
-                   "ResourceNotFound", "Service Unavailable", "Forbidden")
+                   "ResourceNotFound", "Service Unavailable", "Forbidden", "misspelled or not recognized", "unrecognized arguments")
                    if s.lower() in result.stderr.lower()]
         report(label, {"error": "Azure read failed", "signals": signals})
         return None
@@ -107,7 +107,14 @@ def main():
             else "configured (value omitted)"} for s in settings])
     runtimes = az("node runtime support", ["webapp", "list-runtimes", "--os", "linux"])
     if isinstance(runtimes, list):
-        report("node runtime support", [r for r in runtimes if isinstance(r, str) and r.startswith("NODE:")])
+        report("node runtime support", [r for r in runtimes if isinstance(r, str) and re.match(r"(?i)^node[:|]", r)])
+    startup = az("startup log", ["webapp", "log", "startup", "show", *scope])
+    if startup:
+        text = json.dumps(startup).lower()
+        report("startup log", {"signals": [p for p in ("Run npm run build", "Cannot find module",
+            "node:sqlite", "ERR_MODULE_NOT_FOUND", "ENOENT", "EACCES", "ENOSPC", "out of memory",
+            "npm error", "npm ERR", "didn't respond to HTTP pings", "failed to start", "failed to pull image",
+            "ImagePullFailure", "local only, AI disabled", "CU_PDF_FONT_DIR", "typekit", "503") if p.lower() in text]})
     plan_id = app.get("serverFarmId")
     if plan_id:
         plan = az("plan", ["appservice", "plan", "show", "--ids", plan_id])
