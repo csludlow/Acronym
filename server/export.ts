@@ -14,6 +14,7 @@ import {
   claimLabels,
   type Assessment,
 } from "../shared/model.ts";
+import { handoff } from "../shared/handoff.ts";
 import { demand } from "./domain.ts";
 export function snapshot(a: Assessment, final: boolean, reviewer: string) {
   const issues = outstanding(a);
@@ -28,11 +29,14 @@ export function snapshot(a: Assessment, final: boolean, reviewer: string) {
     format: "acronym-generic-v1" as const,
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
-    status: final ? "Final generic assessment" : "Draft generic assessment",
+    status: final
+      ? "Completed preparation package"
+      : "Draft preparation package",
     reviewer: final ? reviewer : "",
     notice:
       "Original preparation content. Not an official HECVAT, VPAT-based ACR, OpenACR document, certification, or endorsement.",
     outstanding: issues,
+    handoff: handoff(a),
     assessment: structuredClone(a),
   };
 }
@@ -65,6 +69,7 @@ export async function renderReport(s: Snapshot) {
     const e = a.evidence.find((e) => e.id === r.evidenceId);
     return `${e?.fileName ?? r.evidenceId}, ${r.locator}${r.quote ? ` — ${r.quote}` : ""} [SHA-256 ${e?.hash ?? "missing"}]`;
   };
+  const guide = s.handoff ?? handoff(a);
   const children = [
     new Paragraph({
       text: "Vendor Assessment Report",
@@ -83,6 +88,39 @@ export async function renderReport(s: Snapshot) {
     ...(a.synthetic
       ? [p("SYNTHETIC DEMONSTRATION — no real vendor or customer records")]
       : []),
+    h("Your next steps"),
+    p(guide.summary),
+    p(guide.notice),
+    ...guide.next.flatMap((step) => [label(step.title, step.instruction)]),
+    h("Finish and submit the requested documents"),
+    ...guide.submissionSteps.map((step, i) =>
+      label(`${i + 1} ${step.title}`, step.instruction),
+    ),
+    h("Reviewed response blocks for transfer"),
+    p(
+      "Read the actual question before reusing any block. Verify its fit and keep its limitations and evidence references. Unapproved and stale responses remain in the assessment section, not in these transfer blocks.",
+    ),
+    ...(guide.responses.length
+      ? guide.responses.flatMap((r) => [
+          label(r.id, r.title),
+          ...r.text.split("\n").map(p),
+        ])
+      : [
+          p(
+            "No reviewed response blocks are available yet. Drafts and missing responses appear below for follow-up.",
+          ),
+        ]),
+    h("Reviewed accessibility blocks for transfer"),
+    ...(guide.accessibility.length
+      ? guide.accessibility.flatMap((r) => [
+          label(r.id, r.title),
+          ...r.text.split("\n").map(p),
+        ])
+      : [
+          p(
+            "No reviewed criterion judgments are ready for transfer. Record evaluations and human judgments; keep unresolved criteria visible in the draft.",
+          ),
+        ]),
     h("Product and assessment details"),
     ...Object.entries(productFields).map(([key, title]) =>
       label(

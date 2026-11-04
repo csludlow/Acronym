@@ -5,10 +5,10 @@ Verified locally on **2026-11-04**, macOS, Node **24.22.1**, installed Google Ch
 | Check                                     | Result                                                                          |
 | ----------------------------------------- | ------------------------------------------------------------------------------- |
 | TypeScript strict type checking           | Passed                                                                          |
-| Vite production build                     | Passed; 124 modules built                                                       |
-| Domain, storage, API, and document tests  | **18 passed, 0 failed**                                                         |
+| Vite production build                     | Passed; 125 modules built                                                       |
+| Domain, storage, API, and document tests  | **22 passed, 0 failed**                                                         |
 | Playwright browser tests                  | **2 passed, 0 failed**                                                          |
-| Generic DOCX render and visual inspection | Passed; all 7 pages of a synthetic sample inspected after LibreOffice rendering |
+| Generic DOCX render and visual inspection | Passed; all 8 pages of a synthetic sample inspected after LibreOffice rendering |
 | Dashboard visual inspection               | Passed; synthetic screenshot in `screenshots/dashboard.png`                     |
 
 The browser workflow created a synthetic postal vendor, saved product details, uploaded a TXT source, marked it current, linked an exact source location, saved a negative response, approved it with a named reviewer, recorded a failed keyboard test for label printing, created/downloaded a draft report, reloaded, and recovered the same response and citation. A separate keyboard test verified the skip link, main-content focus, language declaration, and named author field.
@@ -44,7 +44,7 @@ pnpm test:e2e
 
 On macOS, the test configuration uses installed Google Chrome when present. Set `PLAYWRIGHT_CHANNEL=chromium` to choose the Playwright browser explicitly. The browser test data is separate from the normal app data.
 
-Local document QA used `scripts/qa-report.ts` and the environment’s bundled LibreOffice renderer. The sample contained a negative approved answer, a failed accessibility test, unresolved required criteria, and review history. No clipped text or overlaps were observed on the seven rendered pages. Output is editable DOCX with headings; Microsoft Word rendering and a complete document accessibility audit were not performed.
+Local document QA used `scripts/qa-report.ts` and the environment’s bundled LibreOffice renderer. The sample contained a negative approved answer, a failed accessibility test, unresolved required criteria, and review history. No clipped text or overlaps were observed on the eight rendered pages. Output is editable DOCX with headings; Microsoft Word rendering and a complete document accessibility audit were not performed.
 
 ## Limits of these results
 
@@ -55,3 +55,7 @@ Local document QA used `scripts/qa-report.ts` and the environment’s bundled Li
 - The browser accessibility checks are limited smoke tests, not a conformance audit of this assistant.
 - No official HECVAT workbook or VPAT-based ACR fidelity claim is made. Licensing and a populated-template verification suite remain prerequisites.
 - Local tests passed; the repository also includes GitHub Actions for repeatable Linux checks. A local pass is not a claim that every future CI run passed.
+
+## Guided handoff verification
+
+Four additional tests cover prioritized next actions, explicit unknown purchaser standards, transfer blocks restricted to approved responses, preservation of No and justified non-applicability, immutable exported handoff text, failure-containing accessibility judgments, invalidation after test changes, and continuing submission steps after preparation is complete. The browser workflow verifies actual clipboard contents, readable fallback text, and navigation from the overview through the handoff to Product setup. DOCX round-trip assertions include the next steps and submission checklist; all eight sample pages were rendered and inspected.

@@ -746,3 +746,9 @@ input[type="file"] {
     font-size: 29px;
   }
 }
+
+.handoff-action {
+  display: block;
+  margin-top: 6px;
+  margin-bottom: 10px;
+}

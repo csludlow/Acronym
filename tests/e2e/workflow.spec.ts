@@ -16,15 +16,13 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
   await page.getByRole("button", { name: "Save product setup" }).click();
   await expect(page.getByRole("status")).toContainText("Saved locally");
   await page.getByRole("button", { name: /03 Evidence/ }).click();
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "synthetic-policy.txt",
-      mimeType: "text/plain",
-      buffer: Buffer.from(
-        "Synthetic attestation: no external transmissions are configured in the test fixture.",
-      ),
-    });
+  await page.locator("input[type=file]").setInputFiles({
+    name: "synthetic-policy.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from(
+      "Synthetic attestation: no external transmissions are configured in the test fixture.",
+    ),
+  });
   await page.getByRole("button", { name: "Upload evidence" }).click();
   await expect(
     page.getByRole("heading", { name: "synthetic-policy.txt" }),
@@ -73,12 +71,41 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
   ).toBeVisible();
   await page.getByRole("button", { name: /07 Exports/ }).click();
   await expect(
-    page.getByRole("button", { name: "Create final generic snapshot" }),
+    page.getByRole("button", { name: "Complete preparation package" }),
   ).toBeDisabled();
   await page.getByRole("button", { name: "Create draft snapshot" }).click();
   await expect(
-    page.getByRole("heading", { name: "Draft generic assessment" }),
+    page.getByRole("heading", { name: "Draft preparation package" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Your document handoff" }),
+  ).toBeVisible();
+  await page
+    .getByText(
+      "DEMO-DATA-01 · Is information transmitted outside the installation?",
+      { exact: true },
+    )
+    .click();
+  await expect(
+    page.getByLabel("Reviewed transfer text DEMO-DATA-01"),
+  ).toHaveValue(/Response: No/);
+  await expect(
+    page.getByRole("button", { name: "Copy reviewed response DEMO-DATA-01" }),
+  ).toBeVisible();
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page
+    .getByRole("button", {
+      name: "Copy reviewed response DEMO-DATA-01",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Copied DEMO-DATA-01" }),
+  ).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
+    "Response: No",
+  );
+  await page.screenshot({ path: ".local/qa/handoff.png", fullPage: true });
   const download = page.waitForEvent("download");
   await page.getByRole("link", { name: "Download DOCX" }).click();
   expect((await download).suggestedFilename()).toMatch(/\.docx$/);
@@ -94,6 +121,16 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
   await expect(page.getByText("synthetic-policy.txt · Line 1")).toBeVisible();
   await page.getByRole("button", { name: /01 Overview/ }).click();
   await page.screenshot({ path: ".local/qa/dashboard.png", fullPage: true });
+  await page.getByRole("button", { name: "Open your handoff guide →" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Your document handoff" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Open Product setup →", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Product setup", exact: true }),
+  ).toBeVisible();
 });
 test("keyboard access and core labels are present", async ({ page }) => {
   await page.goto("/");

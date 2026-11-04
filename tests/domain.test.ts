@@ -292,11 +292,11 @@ test("a complete generic report can accurately document failures; incomplete is 
   assert.equal(metrics(a).findings, 6);
   assert.equal(
     snapshot(a, true, "Reviewer").status,
-    "Final generic assessment",
+    "Completed preparation package",
   );
   a.criteria[0].judgment = null;
   assert.throws(() => snapshot(a, true, "Reviewer"), /blocked/);
-  assert.equal(snapshot(a, false, "").status, "Draft generic assessment");
+  assert.equal(snapshot(a, false, "").status, "Draft preparation package");
 });
 test("unsupported official versions fail closed; no unsupported workbook is rewritten", () => {
   for (const family of ["HECVAT", "VPAT"])

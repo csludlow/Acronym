@@ -15,6 +15,7 @@ import {
   type ProductKey,
   type Evidence,
 } from "../shared/model";
+import { handoff } from "../shared/handoff";
 import "./style.css";
 type Summary = {
   id: string;
@@ -516,6 +517,7 @@ function App() {
                 {tab === "Review queue" && <Review {...common} />}
                 {tab === "Exports" && (
                   <Exports
+                    go={(t) => navigate(() => setTab(t))}
                     a={a}
                     actor={actor}
                     run={run}
@@ -604,11 +606,8 @@ function Overview({ a, go }: { a: Assessment; go: (t: Tab) => void }) {
                 Documented failures can belong in a completed report. Missing
                 information cannot.
               </p>
-              <button
-                className="text-button"
-                onClick={() => go("Review queue")}
-              >
-                Review responses →
+              <button className="text-button" onClick={() => go("Exports")}>
+                Open your handoff guide →
               </button>
             </div>
           </div>
@@ -1588,8 +1587,170 @@ function Restore({
     </Card>
   );
 }
+function Handoff({ a, go }: { a: Assessment; go: (t: Tab) => void }) {
+  const guide = handoff(a);
+  const [copied, setCopied] = useState("");
+  return (
+    <Card title="Your document handoff">
+      <p>{guide.summary}</p>
+      <p>{guide.notice}</p>
+      <h3>Do this next</h3>
+      <ol>
+        {guide.next.map((step) => (
+          <li key={step.title}>
+            <strong>{step.title}.</strong> {step.instruction}
+            {step.destination && (
+              <button
+                className="text-button handoff-action"
+                onClick={() => go(step.destination!)}
+              >
+                Open {step.destination} →
+              </button>
+            )}
+          </li>
+        ))}
+      </ol>
+      <details>
+        <summary>Requested documents and scope</summary>
+        <dl>
+          {Object.entries({
+            Questionnaire: guide.targets.questionnaire,
+            Standard: guide.targets.standard,
+            Level: guide.targets.level,
+            Edition: guide.targets.edition,
+            Scope: guide.targets.scope,
+          }).map(([label, value]) => (
+            <React.Fragment key={label}>
+              <dt>
+                <strong>{label}</strong>
+              </dt>
+              <dd>{value}</dd>
+            </React.Fragment>
+          ))}
+        </dl>
+        <p>Unconfirmed purchaser requests must be checked in Product setup.</p>
+      </details>
+      <details>
+        <summary>How to finish and send your documents</summary>
+        <ol>
+          {guide.submissionSteps.map((step) => (
+            <li key={step.title}>
+              <strong>{step.title}.</strong> {step.instruction}
+            </li>
+          ))}
+        </ol>
+        <p>
+          Get the requested templates from{" "}
+          <a
+            href="https://www.educause.edu/higher-education-community-vendor-assessment-toolkit"
+            target="_blank"
+            rel="noreferrer"
+          >
+            EDUCAUSE
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://www.itic.org/policy/accessibility/vpat"
+            target="_blank"
+            rel="noreferrer"
+          >
+            ITI
+          </a>
+          , or ask your purchaser for their copies.
+        </p>
+      </details>
+      <h3>Reviewed responses ready to reuse</h3>
+      <p className="muted">
+        Read the actual question or criterion before transferring text. There is
+        no automatic mapping to official question numbers. All blocks below are
+        included in new DOCX and JSON snapshots.
+      </p>
+      <div role="status" aria-live="polite">
+        {copied}
+      </div>
+      {guide.responses.length ? (
+        guide.responses.map((r) => (
+          <details key={r.id}>
+            <summary>
+              {r.id} · {r.title}
+            </summary>
+            <textarea
+              aria-label={`Reviewed transfer text ${r.id}`}
+              readOnly
+              rows={10}
+              value={r.text}
+            />
+            <button
+              className="secondary"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(r.text);
+                  setCopied(
+                    `Copied ${r.id}. Check its fit in the requested document before using it.`,
+                  );
+                } catch {
+                  setCopied(
+                    "Select the text above and copy it with your keyboard.",
+                  );
+                }
+              }}
+            >
+              Copy reviewed response {r.id}
+            </button>
+          </details>
+        ))
+      ) : (
+        <p>
+          No reviewed responses yet. Start in Questionnaire, then approve
+          supported responses in Review queue.
+        </p>
+      )}
+      <h3>Reviewed accessibility judgments</h3>
+      {guide.accessibility.length ? (
+        guide.accessibility.map((r) => (
+          <details key={r.id}>
+            <summary>
+              {r.id} · {r.title}
+            </summary>
+            <textarea
+              aria-label={`Accessibility transfer text ${r.id}`}
+              readOnly
+              rows={10}
+              value={r.text}
+            />
+            <p className="muted">
+              Select and copy this text, then verify it fits the requested
+              criterion and report edition.
+            </p>
+          </details>
+        ))
+      ) : (
+        <p>
+          No criterion judgments are ready yet. Record tests and a separate
+          human judgment in Accessibility. Starter tests alone do not establish
+          conformance.
+        </p>
+      )}
+      {guide.remaining.length > 0 && (
+        <details>
+          <summary>
+            {guide.remaining.length} responses still need work or review
+          </summary>
+          <ul>
+            {guide.remaining.map((r) => (
+              <li key={r.id}>
+                {r.title} — {r.status}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </Card>
+  );
+}
 function Exports({
   a,
+  go,
   actor,
   run,
   done,
@@ -1598,6 +1759,7 @@ function Exports({
   actor: string;
   run: (fn: () => Promise<void>) => Promise<void>;
   done: (a: Assessment) => Promise<void>;
+  go: (t: Tab) => void;
 }) {
   const [items, setItems] = useState<ExportItem[]>([]),
     [reviewer, setReviewer] = useState(actor);
@@ -1618,19 +1780,23 @@ function Exports({
     });
   return (
     <>
-      <Card title="Generic assessment package">
+      <Handoff a={a} go={go} />
+      <Card title="Download your preparation package">
         <p>
           One stable snapshot, two editable formats. Includes product details,
           responses, source references, accessibility findings, review history,
           and outstanding issues.
         </p>
         <div className="notice">
-          Official HECVAT workbook and VPAT® ACR adapters are unsupported.
-          Generic exports are clearly labeled and do not replace those official
-          deliverables. JSON uses the Acronym schema, not OpenACR.
+          Download the editable DOCX to continue writing, share it with your
+          reviewer, and transfer suitable responses into the purchaser’s
+          requested documents. The package includes your next steps and reviewed
+          response blocks. Download JSON to keep a structured record. The
+          official workbook and accessibility report still need to be completed
+          and checked.
         </div>
         <Field
-          label="Final report reviewer"
+          label="Preparation package reviewer"
           value={reviewer}
           onChange={setReviewer}
         />
@@ -1643,16 +1809,16 @@ function Exports({
             disabled={issues.length > 0}
             onClick={() => void create(true)}
           >
-            Create final generic snapshot
+            Complete preparation package
           </button>
         </div>
         <p className="muted">
           {issues.length
-            ? `${issues.length} required documentation or review tasks block final completion.`
+            ? `${issues.length} preparation tasks remain. You can download a draft now and return to finish them.`
             : "All required documentation and reviews are recorded. Failures may still need remediation."}
         </p>
         <details>
-          <summary>Final completion checklist</summary>
+          <summary>Preparation completion checklist</summary>
           <ul>
             {issues.map((s, i) => (
               <li key={i}>{s}</li>

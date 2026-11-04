@@ -19,7 +19,11 @@ test("generic DOCX round trip preserves negative answer, source, findings, and r
   const bytes = await renderReport(snapshot(a, false, ""));
   const text = (await mammoth.extractRawText({ buffer: bytes })).value;
   for (const phrase of [
-    "Draft generic assessment",
+    "Draft preparation package",
+    "Your next steps",
+    "Finish and submit the requested documents",
+    "Reviewed response blocks for transfer",
+    "Send the requested files and retain your record",
     "Response: No",
     "Morgan reviewer",
     "Negative response reviewed",

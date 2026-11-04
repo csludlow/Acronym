@@ -40,7 +40,7 @@ An npm-only installation also works with `npm install`, followed by the same `np
 3. **Questionnaire:** use the grouped original questions, plain-language explanations, response format, and evidence suggestions. Add an answer, citations, completed tests, or a human attestation. No is valid. Not applicable needs a reason and confirmation. Save before switching questions.
 4. **Accessibility:** define actual criterion identifiers, standards, levels, and scope; the supplied areas are just starters. Record screens, workflow, OS/configuration, methods/tools/assistive technologies, expected and observed behavior, tester/date, findings, limitations, and remediation. Link evidence. Record criterion judgments separately with a named reviewer and coverage acknowledgment.
 5. **Review queue:** approve supported answers as a named human. A reviewer name is an acknowledgment, not verified identity or a cryptographic signature. Changes to answers, product details, or relevant evidence/test records require renewed review.
-6. **Exports:** create a draft snapshot at any time. Download DOCX and JSON from the same fixed snapshot. Final generic completion requires all documentation/review tasks to be resolved, but can include documented failures. This is not a security score, accessibility certification, or official template completion.
+6. **Exports and handoff:** create a draft snapshot at any time. Download DOCX and JSON from the same fixed snapshot. Final generic completion requires all documentation/review tasks to be resolved, but can include documented failures. This is not a security score, accessibility certification, or official template completion.
 
 The synthetic workflow includes creating a shipment, editing an address, responding to a validation error, and printing a label. It uses no real shipment records or customer addresses. `tests/helpers.ts` contains a complete synthetic fixture for testing final reports with documented failures.
 
@@ -96,3 +96,9 @@ No hosted authentication, multi-user roles, billing, enterprise integrations, au
 - **Export stays draft:** use the completion checklist. Confirm setup and scope inventory, review every answer, and record human judgments for the stated criteria.
 - **Extraction fails or misses text:** use an unencrypted supported document, reduce its size, or upload a TXT transcription with source notes. Check scanned pages manually.
 - **Tests cannot open a local port or launch a browser:** run in an environment that permits localhost listeners and browser processes; this is required by API and end-to-end tests.
+
+## From preparation to submission
+
+Exports includes a personalized handoff guide: next actions, the purchaser’s recorded targets, copyable reviewed responses, and a six-step checklist for completing and sending the requested documents. New DOCX and JSON snapshots include that guide. Only currently approved responses enter transfer blocks; drafts and stale approvals remain visible in the full assessment. Copying preserves negative answers, non-applicability reasons, sources, attestations, and reviewer context.
+
+“Completed preparation package” means the recorded preparation checklist is complete. The user still needs to obtain the purchaser’s exact documents, match responses to actual questions, finish all required coverage, check the resulting files, and send them through the agreed channel. Original preparation IDs are never claimed to map to official question IDs. Previously issued snapshots retain their original labels and contents.

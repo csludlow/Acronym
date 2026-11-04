@@ -3,6 +3,7 @@
 The browser and API share one localhost origin. In development, Express mounts Vite middleware. In production, it serves the compiled React assets. No cloud process is involved.
 
 - `shared/model.ts`: original question catalog, setup fields, typed records, input schemas, progress counts, conflict checks, outstanding tasks.
+- `shared/handoff.ts`: derives next actions, reviewed security/accessibility transfer blocks, and a submission checklist from the current assessment. New exports store this guide with their fixed snapshot.
 - `server/domain.ts`: validated commands and human-review rules. All persisted business mutations pass through commands except creation, evidence upload, and validated restore.
 - `server/store.ts`: SQLite aggregate storage with optimistic revisions, prepared statements, and SHA-256-addressed immutable evidence files.
 - `migrations/001_initial.sql`: assessment and export-snapshot tables plus migration tracking. Migration 1 is idempotent. Future migrations must be numbered, transactional, and backed up before destructive schema changes.
