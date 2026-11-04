@@ -47,4 +47,4 @@ HECVAT workbook fidelity has **not been tested** because no authorized adapter i
 - [Mammoth](https://github.com/mwilliamson/mammoth.js) extracts raw DOCX text; HTML conversion is deliberately unused.
 - [Mozilla PDF.js](https://mozilla.github.io/pdf.js/) extracts PDF text by page. Image-only content needs OCR or manual transcription.
 - XLSX evidence is read as bounded OOXML using fflate and fast-xml-parser. Formula text and cached values are displayed as text; nothing is calculated or rewritten. This limited reader makes no fidelity claim for Excel export.
-- Resolved versions are pinned by `pnpm-lock.yaml`. Recheck guidance, package maintenance, and template releases before adding official or hosted support.
+- Dependency ranges are declared in `package.json`; CU Launch currently uses its supported npm-install fallback without a committed lockfile. Recheck guidance, package maintenance, and template releases before adding official or hosted support.

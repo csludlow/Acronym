@@ -1,6 +1,12 @@
 # Verification results
 
-Verified locally on **2026-11-04**, macOS, Node **24.22.1**, installed Google Chrome, and the versions in `pnpm-lock.yaml`.
+Verified locally on **2026-11-04**, macOS, Node **24.22.1**, installed Google Chrome, and the installed dependency versions from the previous pnpm lockfile.
+
+## CU Launch package compatibility check
+
+After removing the unsupported pnpm lockfile/workspace declaration and switching instructions and CI to npm, strict type checking, the production build, all **27 backend/document tests**, and both **2 browser tests** passed again. The synthetic workflow ran against a separate local data directory. The API test initially hit the sandbox’s localhost-listener restriction; it passed when rerun with that permission.
+
+Node and the test tools were invoked directly from the bundled runtime because npm is absent from both the system and bundle. No runtime was installed. These local results use existing dependencies; fresh npm resolution is checked separately by the updated GitHub workflow. The source package satisfies the supplied single-root Express contract and contains no unsupported package-manager lockfile or workspace declaration. CU Launch’s own preparation check and live Azure behavior remain unverified.
 
 | Check                                     | Result                                                                          |
 | ----------------------------------------- | ------------------------------------------------------------------------------- |
@@ -35,11 +41,11 @@ The browser workflow created a synthetic postal vendor, saved product details, u
 ## Reproduction
 
 ```sh
-pnpm install --frozen-lockfile
-pnpm build
-pnpm test
-pnpm exec playwright install chromium
-pnpm test:e2e
+npm install
+npm run build
+npm test
+npx playwright install chromium
+npm run test:e2e
 ```
 
 On macOS, the test configuration uses installed Google Chrome when present. Set `PLAYWRIGHT_CHANNEL=chromium` to choose the Playwright browser explicitly. The browser test data is separate from the normal app data.

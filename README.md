@@ -2,7 +2,7 @@
 
 Acronym helps small software vendors prepare security questionnaires and accessibility reports for college and university purchasers. It explains unfamiliar questions, organizes evidence and testing results, and guides users through human review. Users leave with an editable preparation package and clear next steps for completing the requested HECVAT and VPAT-based documents.
 
-**Working prototype:** React and TypeScript, a Node/Express server, SQLite, and local evidence files. No AI service, API key, or external service is required at runtime. CU Launch hosting and protocols are intentionally deferred.
+**Working prototype:** React and TypeScript, a Node/Express server, SQLite, and local evidence files. No AI service, API key, or external service is required at runtime. Package tooling follows CU Launch’s single-root Express import requirements; hosted operation remains unverified.
 
 **Official-template boundary:** this release supplies original preparation content and generic DOCX/PDF/JSON reports. It does not bundle HECVAT questions, generate an official HECVAT workbook, or produce an official VPAT®-based ACR. HECVAT platform licensing is not established. Official exports fail visibly rather than guessing. See [standards research](docs/STANDARDS.md).
 
@@ -10,12 +10,11 @@ Acronym helps small software vendors prepare security questionnaires and accessi
 
 ## Install and run
 
-Requirements: Node.js **24 or newer** and npm; pnpm 11 is recommended for the checked-in lockfile.
+Requirements: Node.js **24 or newer** and npm.
 
 ```sh
-npm install -g pnpm@11
-pnpm install --frozen-lockfile
-pnpm dev
+npm install
+npm run dev
 ```
 
 Open **http://127.0.0.1:4310**. Enter your name and choose **Explore synthetic demo**, or create a blank assessment. No default standard is selected. Saved changes survive reloads and server restarts.
@@ -23,15 +22,15 @@ Open **http://127.0.0.1:4310**. Enter your name and choose **Explore synthetic d
 For a production-style local run:
 
 ```sh
-pnpm build
-NODE_ENV=production pnpm start
+npm run build
+NODE_ENV=production npm start
 ```
 
-On PowerShell, set `$env:NODE_ENV="production"` before `pnpm start`.
+On PowerShell, set `$env:NODE_ENV="production"` before `npm start`.
 
 The server always binds to `127.0.0.1`. `PORT` changes its port and `DATA_DIR` changes the local data directory. The CU font kit loads from Adobe Fonts; the app works offline with fallback fonts. No analytics, telemetry, or AI endpoint is used by the application code. Browser tests use a separate `.local/e2e-data` directory.
 
-An npm-only installation also works with `npm install`, followed by the same `npm run dev`, `npm run build`, and `npm start` commands; it does not use the pnpm lockfile. Prefer pnpm for reproducibility.
+This is one root Express application, not a package workspace. CU Launch uses its supported `npm install` fallback because no npm lockfile is committed yet. Dependency ranges remain in `package.json`; fresh installations can resolve newer compatible versions. GitHub CI checks a fresh npm installation. A generated, verified `package-lock.json` can later enable reproducible `npm ci` installs.
 
 ## Walk through the prototype
 
@@ -48,17 +47,17 @@ The synthetic workflow includes creating a shipment, editing an address, respond
 
 **Portable assessment backup:** use Exports → Download assessment backup. It includes that assessment, evidence bytes, extracted text, and history. Use Restore as a copy to import it without overwriting existing work. Hashes and structure are validated. Imported approvals/judgments require fresh review. Portable backups exclude issued export files; download those separately. The restore request limit is 80 MB.
 
-**Full workspace backup, including issued snapshots:** stop the server with Ctrl+C, then copy the entire `data/` directory (or your `DATA_DIR`) to a protected backup location. Include the SQLite database, any `-wal`/`-shm` files, and `files/`. Never copy only a live database file. To recover, keep the existing directory as a fallback, place the backup in a separate directory, and start with `DATA_DIR=/path/to/recovered-data pnpm start`. The app applies numbered SQL migrations automatically on startup. See [architecture](docs/ARCHITECTURE.md).
+**Full workspace backup, including issued snapshots:** stop the server with Ctrl+C, then copy the entire `data/` directory (or your `DATA_DIR`) to a protected backup location. Include the SQLite database, any `-wal`/`-shm` files, and `files/`. Never copy only a live database file. To recover, keep the existing directory as a fallback, place the backup in a separate directory, and start with `DATA_DIR=/path/to/recovered-data npm start`. The app applies numbered SQL migrations automatically on startup. See [architecture](docs/ARCHITECTURE.md).
 
 The application does **not encrypt** local storage, exports, or backups. Use operating-system access controls and disk encryption appropriate to your environment. Keep backups and evidence out of Git. SHA-256 detects accidental changes, not malicious alteration by someone who can edit the whole database and files.
 
 ## Tests
 
 ```sh
-pnpm build
-pnpm test
-pnpm exec playwright install chromium
-pnpm test:e2e
+npm run build
+npm test
+npx playwright install chromium
+npm run test:e2e
 ```
 
 The browser test automatically uses installed Chrome on macOS. You can also select it with `PLAYWRIGHT_CHANNEL=chrome`; otherwise it uses Playwright Chromium. CI installs Chromium. Tests exercise the non-AI workflow, persistence, approval gates, negative/unknown/non-applicable answers, exact references, conflicts, stale approvals, test/judgment separation, failure-containing final reports, backup integrity, localhost protections, unsupported adapters, document round trips, and a full synthetic browser workflow.
@@ -88,8 +87,8 @@ No hosted authentication, multi-user roles, billing, enterprise integrations, au
 ## Troubleshooting
 
 - **Node cannot load `node:sqlite`:** install Node 24+, then reinstall dependencies.
-- **Port is in use:** stop the other server or use `PORT=4312 pnpm dev` and open that localhost port.
-- **Missing production build:** run `pnpm build` before starting with `NODE_ENV=production`.
+- **Port is in use:** stop the other server or use `PORT=4312 npm run dev` and open that localhost port.
+- **Missing production build:** run `npm run build` before starting with `NODE_ENV=production`.
 - **Save conflict:** another tab changed the assessment. Reload it before resubmitting; stale writes are rejected.
 - **Cannot approve:** inspect missing author/support, unknown answer/applicability, product conflicts, evidence currency/version, or unfinished linked tests.
 - **Cannot record Supports:** complete all recorded tests for that criterion and current product version, resolve failed tests honestly, and confirm coverage. Do not change a failed result merely to obtain Supports.
