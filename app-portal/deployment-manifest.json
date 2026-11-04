@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0.0",
+  "templateSlug": "imported-web-app",
+  "runtime": {
+    "family": "node",
+    "framework": "express",
+    "displayName": "Node.js 24 / Express",
+    "azureRuntimeStack": "NODE|24-lts",
+    "startupCommand": "npm start"
+  },
+  "hosting": {
+    "provider": "azure",
+    "service": "app-service"
+  },
+  "deployment": {
+    "method": "github-actions"
+  },
+  "defaults": {
+    "githubRepository": "acronym",
+    "azure": {
+      "resourceModel": "shared-portal-managed",
+      "runtimeStack": "NODE|24-lts",
+      "startupCommand": "npm start",
+      "shared": {
+        "resourceGroup": "rg-cu-apps-published",
+        "appServicePlan": "asp-cu-apps-published"
+      },
+      "perApp": {
+        "webAppNamePattern": "app-acronym-<short-request-id>",
+        "federatedCredentialNamePattern": "github-acronym-<short-request-id>",
+        "managedIdentityNamePattern": "id-acronym-<short-request-id>"
+      }
+    }
+  },
+  "environments": {
+    "development": {},
+    "production": {}
+  },
+  "applicationSettings": [
+    "NODE_ENV"
+  ],
+  "automation": {
+    "skillPath": ".codex/skills/cu-app-portal/SKILL.md"
+  }
+}
