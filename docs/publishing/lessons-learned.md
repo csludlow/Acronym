@@ -22,3 +22,10 @@ References: [Azure login inputs](https://github.com/Azure/login), [GitHub action
 Holding the Adobe stylesheet request open reproduced a blank/unavailable first screen with the original header link: the named author field never appeared within the test timeout. Immediate font-request rejection in the existing offline tests had not caught this case. Move the optional kit to a React effect with nonmatching media during download, applying it after load. The same regression now creates an assessment and downloads its PDF while the request remains stalled.
 
 Build and Node startup contain no Adobe fetch or font-readiness wait. PDF generation resolves local fonts when a report is requested; a missing `CU_PDF_FONT_DIR` file can fail a report but is not read during startup. The four fallback font files total about 2.3 MB. The typography commit did not change the package dependencies or server listener. This establishes a browser-loading defect, not the cause of OneDeploy's HTTP 503. Azure-side service diagnostics are still needed; no live cause is inferred from the local tests.
+## Read-only investigation without personal Azure login
+
+`.github/workflows/diagnose-azure.yml` is manual-only and restricted to main. It reuses CU Launch's existing deployment identity and OIDC trust to read this app's state, configuration, plan state, and deployment results. It does not provision, restart, publish, repair, change settings, or broaden permissions. No personal Azure login is used. The Python helper prints selected status fields and recognized error classes; raw logs, CLI errors, credentials, and HTTP response bodies are suppressed. Endpoint probes do not follow redirects.
+
+The initial diagnostic-only commit uses `[skip ci]` to prevent the existing push-to-deploy workflow from running; diagnostics are then dispatched explicitly. The application/typography fixes remain in draft PR #2. Future ordinary main pushes still trigger the existing deployment workflow.
+
+Local checks: three isolated fixtures verify read-only commands, redaction, host validation and no redirect following; workflow YAML parses through Prettier.
