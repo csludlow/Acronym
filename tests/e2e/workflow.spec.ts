@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 test.beforeEach(async ({ page }) => {
   if (process.env.CU_VERIFY_FONTS !== "1")
     await page.route(/https:\/\/(?:use|p)\.typekit\.net\//, (route) =>
@@ -7,25 +9,29 @@ test.beforeEach(async ({ page }) => {
 });
 test("synthetic vendor can create, attach evidence, answer, test, review, export and reload", async ({
   page,
-}) => {
+}, testInfo) => {
+  const temporary = testInfo.project.name === "public";
+  const savedMessage = temporary ? "Updated in this tab" : "Saved locally";
   await page.goto("/");
   if (process.env.CU_VERIFY_FONTS === "1") {
-    const faces = await page.evaluate(async () => {
-      const result = await Promise.all(
-        ['400 17px "minion-pro"', '700 20px "myriad-pro"'].map((f) =>
-          document.fonts.load(f),
+    await expect(async () => {
+      const faces = await page.evaluate(async () => {
+        const result = await Promise.all(
+          ['400 17px "minion-pro"', '700 20px "myriad-pro"'].map((f) =>
+            document.fonts.load(f),
+          ),
+        );
+        return result.map((fonts) =>
+          fonts.map((f) => ({ family: f.family, status: f.status })),
+        );
+      });
+      expect(
+        faces.every(
+          (fonts) =>
+            fonts.length > 0 && fonts.every((f) => f.status === "loaded"),
         ),
-      );
-      return result.map((fonts) =>
-        fonts.map((f) => ({ family: f.family, status: f.status })),
-      );
-    });
-    expect(
-      faces.every(
-        (fonts) =>
-          fonts.length > 0 && fonts.every((f) => f.status === "loaded"),
-      ),
-    ).toBe(true);
+      ).toBe(true);
+    }).toPass({ timeout: 15000 });
   }
   await page.getByLabel("Your name", { exact: true }).fill("Morgan Demo");
   await page
@@ -41,7 +47,7 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
     page.getByRole("button", { name: "Save product setup" }),
   ).toHaveCSS("background-color", "rgb(0, 58, 99)");
   await page.getByRole("button", { name: "Save product setup" }).click();
-  await expect(page.getByRole("status")).toContainText("Saved locally");
+  await expect(page.getByRole("status")).toContainText(savedMessage);
   await page.getByRole("button", { name: /03 Evidence/ }).click();
   await page.locator("input[type=file]").setInputFiles({
     name: "synthetic-policy.txt",
@@ -56,7 +62,7 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
   ).toBeVisible();
   await page.getByLabel("Evidence relevance").selectOption("Current");
   await page.getByRole("button", { name: "Save evidence details" }).click();
-  await expect(page.getByRole("status")).toContainText("Saved locally");
+  await expect(page.getByRole("status")).toContainText(savedMessage);
   await page.getByRole("button", { name: /04 Questionnaire/ }).click();
   await page.getByLabel("Response", { exact: true }).selectOption("No");
   await page
@@ -69,7 +75,7 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
   await page.getByRole("button", { name: "Attach reference" }).click();
   await page.getByLabel("Workflow status").selectOption("Ready for review");
   await page.getByRole("button", { name: "Save answer", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("Saved locally");
+  await expect(page.getByRole("status")).toContainText(savedMessage);
   await page.getByRole("button", { name: /06 Review queue/ }).click();
   await page
     .getByRole("button", { name: "Approve DEMO-DATA-01", exact: true })
@@ -139,6 +145,74 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
   const pdfDownload = page.waitForEvent("download");
   await page.getByRole("link", { name: "Download PDF", exact: true }).click();
   expect((await pdfDownload).suggestedFilename()).toMatch(/\.pdf$/);
+  if (temporary) {
+    const jsonEvent = page.waitForEvent("download");
+    await page
+      .getByRole("link", { name: "Download JSON", exact: true })
+      .click();
+    const report = JSON.parse(
+      await readFile((await (await jsonEvent).path())!, "utf8"),
+    );
+    expect(report.assessment.answers["DEMO-DATA-01"].response).toBe("No");
+    expect(report.assessment.answers["DEMO-DATA-01"].status).toBe("Approved");
+    expect(
+      report.assessment.answers["DEMO-DATA-01"].references[0].locator,
+    ).toBe("Line 1");
+    expect(report.assessment.tests[0].result).toBe("Fail");
+    const backupEvent = page.waitForEvent("download");
+    await page
+      .getByRole("link", { name: "Download assessment backup", exact: true })
+      .click();
+    const backupFile = await (await backupEvent).path();
+    expect(backupFile).toBeTruthy();
+    const other = await page.context().newPage();
+    await other.route(/https:\/\/(?:use|p)\.typekit\.net\//, (route) =>
+      route.abort(),
+    );
+    await other.goto("/");
+    await expect(other.getByLabel("Your name", { exact: true })).toHaveValue(
+      "",
+    );
+    expect(
+      await other.getByLabel("Current assessment").locator("option").count(),
+    ).toBe(1);
+    await other.close();
+    expect(
+      await page.evaluate(() => [localStorage.length, sessionStorage.length]),
+    ).toEqual([0, 0]);
+    expect(await page.context().cookies()).toEqual([]);
+    expect(await page.evaluate(() => indexedDB.databases())).toEqual([]);
+    expect(existsSync(".local/must-not-exist-public")).toBe(false);
+    page.on("dialog", (dialog) => dialog.accept());
+    await page.reload();
+    await expect(page.getByLabel("Your name", { exact: true })).toHaveValue("");
+    expect(
+      await page.getByLabel("Current assessment").locator("option").count(),
+    ).toBe(1);
+    await page.getByLabel("Assessment backup file").setInputFiles(backupFile!);
+    await page
+      .getByRole("button", { name: "Restore as a copy", exact: true })
+      .click();
+    await expect(page.getByLabel("Current assessment")).not.toHaveValue("");
+    await page.getByRole("button", { name: /04 Questionnaire/ }).click();
+    await expect(page.getByLabel("Response", { exact: true })).toHaveValue(
+      "No",
+    );
+    await expect(page.getByLabel("Workflow status")).toHaveValue(
+      "Needs clarification",
+    );
+    await expect(page.getByText("synthetic-policy.txt · Line 1")).toBeVisible();
+    await page
+      .getByRole("button", { name: "End session and clear work", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "Prepare with confidence." }),
+    ).toBeVisible();
+    expect(
+      await page.getByLabel("Current assessment").locator("option").count(),
+    ).toBe(1);
+    return;
+  }
   const id = await page.getByLabel("Current assessment").inputValue();
   await page.reload();
   await page.getByLabel("Current assessment").selectOption(id);
@@ -169,6 +243,7 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
 });
 test("keyboard access and core labels are present", async ({ page }) => {
   await page.goto("/");
+  await expect(page.getByLabel("Your name", { exact: true })).toBeVisible();
   await page.keyboard.press("Tab");
   await expect(
     page.getByRole("link", { name: "Skip to main content" }),

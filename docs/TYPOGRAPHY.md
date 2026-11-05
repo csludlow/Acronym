@@ -6,15 +6,15 @@
 
 The Adobe Fonts project **Acronym CU Typography**, kit **yya5cit**, was created and published through the authenticated Adobe account. It includes Minion Pro and Myriad Pro in regular, bold, italic, and bold italic.
 
-```html
-<link rel="stylesheet" href="https://use.typekit.net/yya5cit.css" />
-```
+The app requests `https://use.typekit.net/yya5cit.css` after React mounts. The stylesheet initially uses nonmatching `media="print"` and switches to `all` on load, so a slow or stalled Adobe request cannot delay the first screen. Keep this optional loader in `src/main.tsx`; do not restore a blocking stylesheet in the HTML header.
 
 The exact CSS names returned by Adobe are `minion-pro` and `myriad-pro`. The app uses Minion for body paragraphs and source excerpts; Myriad for headings, navigation, controls, labels, numbers, and callouts. Offline fallback families are explicitly listed in CSS.
 
 The kit was configured for `localhost` and `127.0.0.1`. Add the actual CU Launch hostname to this existing web project in Adobe Fonts when that hostname is known. Keep the Adobe subscription/project active. This public kit ID is an embed identifier, not a secret or API credential. No proprietary font binaries are committed.
 
 Font loading contacts `use.typekit.net` and `p.typekit.net`. Production CSP allows those specific origins for their required styles/fonts. The core workflow still works offline with fallback fonts. No assessment answers or evidence are intentionally sent to Adobe for font loading.
+
+The regression in `tests/e2e/fonts.spec.ts` holds the Adobe stylesheet request open while opening a synthetic assessment and downloading a PDF. It failed with the previous header link and passes with the non-blocking loader. Immediate network rejection and a stalled request are different cases; both are covered.
 
 ## DOCX
 

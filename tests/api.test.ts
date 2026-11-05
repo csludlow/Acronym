@@ -35,7 +35,7 @@ test("HTTP workflow works without AI; upload, review, snapshot, and local reques
     );
     assert.equal(
       (
-        await fetch(base + "/health", {
+        await fetch(base + "/config", {
           headers: { Origin: "http://evil.example" },
         })
       ).status,
@@ -44,7 +44,7 @@ test("HTTP workflow works without AI; upload, review, snapshot, and local reques
     assert.equal(
       await new Promise<number | undefined>((resolve) => {
         const req = request(
-          base + "/health",
+          base + "/config",
           { headers: { Host: "evil.example" } },
           (res) => {
             res.resume();

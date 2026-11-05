@@ -7,11 +7,10 @@ import {
   chmodSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
-import { createHash } from "node:crypto";
+import { hash } from "./hash.ts";
+export { hash } from "./hash.ts";
 import { DomainError } from "./domain.ts";
 import type { Assessment } from "../shared/model.ts";
-export const hash = (b: Uint8Array | string) =>
-  createHash("sha256").update(b).digest("hex");
 export class Store {
   db: DatabaseSync;
   dir: string;

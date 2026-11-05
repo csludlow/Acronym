@@ -3,7 +3,6 @@ import { existsSync } from "node:fs";
 export default defineConfig({
   testDir: "./tests/e2e",
   use: {
-    baseURL: "http://127.0.0.1:4311",
     headless: true,
     channel:
       process.env.PLAYWRIGHT_CHANNEL ||
@@ -13,11 +12,32 @@ export default defineConfig({
         : undefined),
   },
   workers: 1,
-  webServer: {
-    command: `"${process.execPath}" --import tsx server/index.ts`,
-    env: { NODE_ENV: "production", PORT: "4311", DATA_DIR: ".local/e2e-data" },
-    url: "http://127.0.0.1:4311/api/health",
-    reuseExistingServer: false,
-  },
+  projects: [
+    { name: "local", use: { baseURL: "http://127.0.0.1:4311" } },
+    { name: "public", use: { baseURL: "http://127.0.0.1:4312" } },
+  ],
+  webServer: [
+    {
+      command: `"${process.execPath}" --import tsx server/index.ts`,
+      env: {
+        NODE_ENV: "production",
+        PORT: "4311",
+        DATA_DIR: ".local/e2e-data",
+      },
+      url: "http://127.0.0.1:4311/api/health",
+      reuseExistingServer: false,
+    },
+    {
+      command: `"${process.execPath}" --import tsx server/index.ts`,
+      env: {
+        NODE_ENV: "production",
+        PORT: "4312",
+        APP_MODE: "ephemeral",
+        DATA_DIR: ".local/must-not-exist-public",
+      },
+      url: "http://127.0.0.1:4312/api/health",
+      reuseExistingServer: false,
+    },
+  ],
   reporter: "list",
 });

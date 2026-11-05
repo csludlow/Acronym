@@ -11,18 +11,19 @@ env:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
+          package-manager-cache: false
 
       - name: Install dependencies
         run: |
@@ -32,10 +33,20 @@ jobs:
             npm install
           fi
 
+      - name: Build web interface
+        run: npm run build
+
+      - name: Verify CU Launch deployment settings
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: node scripts/check-deployment-settings.mjs
+
       - name: Azure login (attempt 1)
         id: azure_login_first
         continue-on-error: true
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -49,7 +60,7 @@ jobs:
         id: azure_login_second
         if: steps.azure_login_first.outcome == 'failure'
         continue-on-error: true
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -61,12 +72,11 @@ jobs:
 
       - name: Azure login (attempt 3)
         if: steps.azure_login_first.outcome == 'failure' && steps.azure_login_second.outcome == 'failure'
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
 
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3

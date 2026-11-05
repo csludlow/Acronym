@@ -2,11 +2,30 @@
 
 Acronym helps small software vendors prepare security questionnaires and accessibility reports for college and university purchasers. It explains unfamiliar questions, organizes evidence and testing results, and guides users through human review. Users leave with an editable preparation package and clear next steps for completing the requested HECVAT and VPAT-based documents.
 
-**Working prototype:** React and TypeScript, a Node/Express server, SQLite, and local evidence files. No AI service, API key, or external service is required at runtime. Package tooling follows CU Launch’s single-root Express import requirements; hosted operation remains unverified.
+**Working prototype:** React and TypeScript with a Node/Express server. The public Azure workspace keeps work in the open browser tab without saving vendor content on the server or in browser storage. The separate localhost mode retains SQLite and local evidence files. AI is disabled; no API key is needed.
 
 **Official-template boundary:** this release supplies original preparation content and generic DOCX/PDF/JSON reports. It does not bundle HECVAT questions, generate an official HECVAT workbook, or produce an official VPAT®-based ACR. HECVAT platform licensing is not established. Official exports fail visibly rather than guessing. See [standards research](docs/STANDARDS.md).
 
 ![Synthetic assessment dashboard](docs/screenshots/dashboard.png)
+
+## Public vendor workspace
+
+Outside vendors can prepare real assessments without an account. Work stays in the current tab's memory. Reloading, closing the tab, or choosing **End session and clear work** clears it. There is no automatic saving, shared assessment list, server session, or public database.
+
+- Product details, answers, reviews, and test edits run in the tab.
+- Uploads go to the server for bounded text extraction. Report generation sends the assessment to the server. Restore sends the chosen backup for validation. Processing uses temporary memory; the application does not write this content to files or a database, or log request bodies/document text.
+- Download DOCX/PDF/JSON to keep a fixed preparation package. Download **assessment backup** to resume later; restore requires renewed human review. Downloaded files are not encrypted by Acronym and remain wherever the vendor saves them.
+- Adobe supplies optional fonts and receives normal font-request information, not assessment fields. Azure and network services may retain operational metadata. Application-level non-persistence is not a guarantee of forensic erasure from operating-system memory, swap, browser crash recovery, or infrastructure diagnostics.
+
+Azure automatically uses temporary mode from its platform-provided `WEBSITE_HOSTNAME`; even `APP_MODE=local` cannot enable the persistent store on Azure. The app listens on Azure's `PORT` and accepts its configured HTTPS origin. No new database or sign-in is needed. `GET /api/health` is public and independent of storage.
+
+To test the same behavior locally after building:
+
+```sh
+APP_MODE=ephemeral NODE_ENV=production npm start
+```
+
+Open http://127.0.0.1:4310. For another hosting provider, explicitly set `APP_MODE=ephemeral` and `PUBLIC_ORIGIN=https://your-hostname`; never publicly proxy local mode. Custom Azure domains also need an explicit `PUBLIC_ORIGIN`. The ordinary localhost commands below preserve the original persistent single-user workflow.
 
 ## Install and run
 
@@ -47,7 +66,7 @@ The synthetic workflow includes creating a shipment, editing an address, respond
 
 **Portable assessment backup:** use Exports → Download assessment backup. It includes that assessment, evidence bytes, extracted text, and history. Use Restore as a copy to import it without overwriting existing work. Hashes and structure are validated. Imported approvals/judgments require fresh review. Portable backups exclude issued export files; download those separately. The restore request limit is 80 MB.
 
-**Full workspace backup, including issued snapshots:** stop the server with Ctrl+C, then copy the entire `data/` directory (or your `DATA_DIR`) to a protected backup location. Include the SQLite database, any `-wal`/`-shm` files, and `files/`. Never copy only a live database file. To recover, keep the existing directory as a fallback, place the backup in a separate directory, and start with `DATA_DIR=/path/to/recovered-data npm start`. The app applies numbered SQL migrations automatically on startup. See [architecture](docs/ARCHITECTURE.md).
+**Local mode only — full workspace backup, including issued snapshots:** stop the server with Ctrl+C, then copy the entire `data/` directory (or your `DATA_DIR`) to a protected backup location. Include the SQLite database, any `-wal`/`-shm` files, and `files/`. Never copy only a live database file. To recover, keep the existing directory as a fallback, place the backup in a separate directory, and start with `DATA_DIR=/path/to/recovered-data npm start`. The app applies numbered SQL migrations automatically on startup. See [architecture](docs/ARCHITECTURE.md).
 
 The application does **not encrypt** local storage, exports, or backups. Use operating-system access controls and disk encryption appropriate to your environment. Keep backups and evidence out of Git. SHA-256 detects accidental changes, not malicious alteration by someone who can edit the whole database and files.
 
@@ -60,7 +79,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The browser test automatically uses installed Chrome on macOS. You can also select it with `PLAYWRIGHT_CHANNEL=chrome`; otherwise it uses Playwright Chromium. CI installs Chromium. Tests exercise the non-AI workflow, persistence, approval gates, negative/unknown/non-applicable answers, exact references, conflicts, stale approvals, test/judgment separation, failure-containing final reports, backup integrity, localhost protections, unsupported adapters, document round trips, and a full synthetic browser workflow.
+The browser test automatically uses installed Chrome on macOS. You can also select it with `PLAYWRIGHT_CHANNEL=chrome`; otherwise it uses Playwright Chromium. CI installs Chromium. Tests exercise the non-AI workflow, persistence, approval gates, negative/unknown/non-applicable answers, exact references, conflicts, stale approvals, test/judgment separation, failure-containing final reports, backup integrity, localhost protections, unsupported adapters, document round trips, and a full synthetic browser workflow in both local and public modes. Public tests cover isolated tabs, empty browser storage, reload clearing, backup restore, and absence of a server data directory.
 
 See [verification results and limitations](docs/TESTING.md). For manual DOCX QA, `node --import tsx scripts/qa-report.ts` creates a synthetic report under `.local/qa/`. Open it in Word or LibreOffice; generated report contents remain editable. The repository does not ship real assessments or evidence.
 
@@ -82,7 +101,7 @@ CSV/TSV evidence is preserved as line text, not interpreted as a spreadsheet. XL
 
 Conflict checks cover explicit structured traffic/access facts and a small encryption check. They do not comprehensively understand arbitrary prose or documents. No application can verify the truth of an attestation or whether a human actually performed a test.
 
-No hosted authentication, multi-user roles, billing, enterprise integrations, automated native-desktop testing, or official-template adapter is included. Do not expose this prototype through a public proxy. [Architecture and extension points](docs/ARCHITECTURE.md) describe the CU Launch handoff boundary.
+No hosted authentication, shared workspaces, multi-user roles, billing, enterprise integrations, automated native-desktop testing, or official-template adapter is included. Public access uses the temporary mode described above. Persistent local mode must remain on localhost. [Architecture and extension points](docs/ARCHITECTURE.md) describe the CU Launch handoff boundary.
 
 ## Troubleshooting
 

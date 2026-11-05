@@ -18,6 +18,13 @@ import {
 import { handoff } from "../shared/handoff";
 import { appDescription } from "../shared/brand";
 import "./style.css";
+import {
+  api,
+  ephemeral,
+  initializeWorkspace,
+  temporaryDownload,
+  uploadEvidence,
+} from "./workspace";
 type Summary = {
   id: string;
   product: string;
@@ -40,24 +47,39 @@ const tabs = [
   "Exports",
 ] as const;
 type Tab = (typeof tabs)[number];
-async function api(path: string, body?: unknown) {
-  const r = await fetch(
-    `/api${path}`,
-    body === undefined
-      ? {}
-      : {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Acronym-Request": "local",
-          },
-          body: JSON.stringify(body),
-        },
+function DownloadLink({
+  href,
+  children,
+  className,
+}: {
+  href: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const [error, setError] = useState("");
+  return (
+    <>
+      <a
+        href={ephemeral ? "#" : href}
+        className={className}
+        onClick={(event) => {
+          if (!ephemeral) return;
+          event.preventDefault();
+          try {
+            temporaryDownload(href);
+            setError("");
+          } catch (e) {
+            setError((e as Error).message);
+          }
+        }}
+      >
+        {children}
+      </a>
+      {error && <span role="alert">{error}</span>}
+    </>
   );
-  const data = await r.json();
-  if (!r.ok) throw new Error(data.error || "Request failed");
-  return data;
 }
+let temporaryQuestion = questions[0].id;
 function Field({
   label,
   value,
@@ -267,24 +289,42 @@ function App() {
   const [list, setList] = useState<Summary[]>([]),
     [a, setA] = useState<Assessment | null>(null),
     [tab, setTab] = useState<Tab>("Overview"),
-    [actor, setActor] = useState(localStorage.getItem("acronym-author") || ""),
+    [actor, setActor] = useState(
+      ephemeral ? "" : localStorage.getItem("acronym-author") || "",
+    ),
     [message, setMessage] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [dirty, setDirty] = useState(false);
   const refresh = async () => setList(await api("/assessments"));
   useEffect(() => {
+    // Optional branding must never delay the first screen or assessment work.
+    const fonts = document.createElement("link");
+    fonts.rel = "stylesheet";
+    fonts.href = "https://use.typekit.net/yya5cit.css";
+    fonts.media = "print";
+    const apply = () => {
+      fonts.media = "all";
+    };
+    fonts.addEventListener("load", apply, { once: true });
+    document.head.append(fonts);
+    return () => {
+      fonts.removeEventListener("load", apply);
+      fonts.remove();
+    };
+  }, []);
+  useEffect(() => {
     refresh().catch((e) => setError(e.message));
   }, []);
   useEffect(() => {
     const fn = (e: BeforeUnloadEvent) => {
-      if (dirty) {
+      if (dirty || (ephemeral && list.length > 0)) {
         e.preventDefault();
       }
     };
     window.addEventListener("beforeunload", fn);
     return () => window.removeEventListener("beforeunload", fn);
-  }, [dirty]);
+  }, [dirty, list.length]);
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
     setError("");
@@ -327,7 +367,11 @@ function App() {
         }),
       );
       await refresh();
-      setMessage("Saved locally.");
+      setMessage(
+        ephemeral
+          ? "Updated in this tab. Download a backup before leaving."
+          : "Saved locally.",
+      );
     });
   const navigate = (fn: () => void) => {
     if (
@@ -357,7 +401,9 @@ function App() {
         </div>
         <div className="local">
           <span />
-          LOCAL WORKSPACE · AI OFF
+          {ephemeral
+            ? "TEMPORARY WORKSPACE · AI OFF"
+            : "LOCAL WORKSPACE · AI OFF"}
         </div>
         <label className="field">
           <span>Current assessment</span>
@@ -406,7 +452,7 @@ function App() {
             value={actor}
             onChange={(s) => {
               setActor(s);
-              localStorage.setItem("acronym-author", s);
+              if (!ephemeral) localStorage.setItem("acronym-author", s);
             }}
             hint="Recorded as author; identity is not verified."
           />
@@ -432,10 +478,44 @@ function App() {
           </div>
           <div className="header-meta">
             {a?.synthetic && <Badge>Synthetic demonstration</Badge>}
-            <Badge>Local single-user prototype</Badge>
+            <Badge>
+              {ephemeral
+                ? "Public · no automatic saving"
+                : "Local single-user prototype"}
+            </Badge>
           </div>
         </header>
         <div className="content">
+          {ephemeral && (
+            <div className="notice">
+              <strong>Your work stays in this tab.</strong> Acronym does not
+              save assessments, uploads, or reports on the server or in browser
+              storage. Reloading or closing this tab clears your work. Download
+              a report or assessment backup before leaving.
+              <details>
+                <summary>How your information is handled</summary>
+                <p>
+                  Answers and edits stay in tab memory. Uploaded documents are
+                  sent to the server for text extraction; assessment content is
+                  sent when generating reports or restoring backups. These
+                  operations use temporary memory, without writing your content
+                  to a database or files. No AI service receives your content.
+                  Adobe supplies the optional fonts and receives standard
+                  font-request information, not assessment fields. Hosting
+                  services may retain connection and diagnostic metadata.
+                  Downloads you choose to keep are not encrypted by Acronym.
+                </p>
+              </details>
+              {list.length > 0 && (
+                <button
+                  className="secondary"
+                  onClick={() => window.location.reload()}
+                >
+                  End session and clear work
+                </button>
+              )}
+            </div>
+          )}
           <div className="page-heading">
             <div>
               <p className="eyebrow">EVIDENCE FIRST. HUMAN REVIEWED.</p>
@@ -459,7 +539,11 @@ function App() {
                   : appDescription}
               </p>
             </div>
-            {a && <span className="revision">Saved revision {a.revision}</span>}
+            {a && (
+              <span className="revision">
+                {ephemeral ? "Tab revision" : "Saved revision"} {a.revision}
+              </span>
+            )}
           </div>
           <div role="status" aria-live="polite">
             {message && <div className="notice success">{message}</div>}
@@ -647,9 +731,9 @@ function Overview({ a, go }: { a: Assessment; go: (t: Tab) => void }) {
       )}
       <Card title="A workspace for preparation">
         <p>
-          External AI processing is disabled. Your work stays in the local
-          database and file repository. Local storage is not encrypted by this
-          application.
+          {ephemeral
+            ? "External AI processing is disabled. Work is held in this tab until you leave or reload. Download your preparation package and backup before leaving."
+            : "External AI processing is disabled. Your work stays in the local database and file repository. Local storage is not encrypted by this application."}
         </p>
         <p>
           HECVAT content and official workbook export need platform licensing
@@ -785,18 +869,7 @@ function EvidenceArea({
             void run(async () => {
               if (!file || !actor.trim())
                 throw new Error("Choose a file and enter your name.");
-              const form = new FormData();
-              form.append("file", file);
-              form.append("actor", actor);
-              form.append("revision", String(a.revision));
-              const r = await fetch(`/api/assessments/${a.id}/evidence`, {
-                method: "POST",
-                headers: { "X-Acronym-Request": "local" },
-                body: form,
-              });
-              const body = await r.json();
-              if (!r.ok) throw new Error(body.error);
-              update(body);
+              update(await uploadEvidence(a, file, actor));
             });
           }}
         >
@@ -865,9 +938,9 @@ function EvidenceCard({
       <Badge>{e.status}</Badge> <Badge>{e.extraction}</Badge>
       <p className="muted">
         Uploaded {new Date(e.uploadedAt).toLocaleString()} ·{" "}
-        <a href={`/api/assessments/${a.id}/evidence/${e.id}`}>
+        <DownloadLink href={`/api/assessments/${a.id}/evidence/${e.id}`}>
           Download original
-        </a>
+        </DownloadLink>
       </p>
       <details>
         <summary>Source locations and extracted text</summary>
@@ -936,7 +1009,9 @@ function EvidenceCard({
 }
 function Questionnaire(props: Common) {
   const [selected, setSelected] = useState(
-      sessionStorage.getItem("acronym-question") || questions[0].id,
+      ephemeral
+        ? temporaryQuestion
+        : sessionStorage.getItem("acronym-question") || questions[0].id,
     ),
     [questionDirty, setQuestionDirty] = useState(false),
     [filter, setFilter] = useState("All questions");
@@ -974,7 +1049,8 @@ function Questionnaire(props: Common) {
                     )
                       return;
                     setQuestionDirty(false);
-                    sessionStorage.setItem("acronym-question", q.id);
+                    if (ephemeral) temporaryQuestion = q.id;
+                    else sessionStorage.setItem("acronym-question", q.id);
                     setSelected(q.id);
                   }}
                 >
@@ -1563,8 +1639,7 @@ function Restore({
       <p>
         Restores a separate copy and its evidence files. Existing assessments
         are kept. Imported approvals and judgments require fresh human review.
-        Previously issued exports are retained by a full local-folder backup;
-        download them separately before using this portable backup.
+        Download issued exports separately before using this portable backup.
       </p>
       <form
         onSubmit={(e) => {
@@ -1832,7 +1907,13 @@ function Exports({
           </ul>
         </details>
       </Card>
-      <Card title="Saved snapshots">
+      <Card
+        title={
+          ephemeral
+            ? "Snapshots in this tab — download to keep"
+            : "Saved snapshots"
+        }
+      >
         {items.length ? (
           items.map((s) => (
             <div className="export-row" key={s.id}>
@@ -1842,28 +1923,28 @@ function Exports({
                 <small>{s.id}</small>
               </div>
               <div className="actions">
-                <a
+                <DownloadLink
                   className="button secondary"
                   href={`/api/exports/${s.id}/docx`}
                 >
                   Download DOCX
-                </a>
+                </DownloadLink>
                 {s.hasPDF ? (
-                  <a
+                  <DownloadLink
                     className="button secondary"
                     href={`/api/exports/${s.id}/pdf`}
                   >
                     Download PDF
-                  </a>
+                  </DownloadLink>
                 ) : (
                   <small>Create a new snapshot for a CU-colored PDF.</small>
                 )}
-                <a
+                <DownloadLink
                   className="button secondary"
                   href={`/api/exports/${s.id}/json`}
                 >
                   Download JSON
-                </a>
+                </DownloadLink>
               </div>
             </div>
           ))
@@ -1874,19 +1955,27 @@ function Exports({
       <Card title="Portable assessment backup">
         <p>
           Includes this assessment, its revision history, and original evidence
-          files. It contains sensitive local content and is not encrypted.
-          Portable backups exclude issued export files; keep separate copies of
-          those or back up the full data folder.
+          files. The downloaded file may contain sensitive information and is
+          not encrypted. Portable backups exclude issued export files; download
+          those separately.
+          {ephemeral &&
+            " This is the only way to resume your work after leaving this tab. Restoring a backup requires a fresh review of imported approvals."}
         </p>
-        <a
+        <DownloadLink
           className="button secondary"
           href={`/api/assessments/${a.id}/backup`}
         >
           Download assessment backup
-        </a>
+        </DownloadLink>
       </Card>
       <Restore run={run} done={done} />
     </>
   );
 }
-createRoot(document.getElementById("root")!).render(<App />);
+initializeWorkspace()
+  .then(() => createRoot(document.getElementById("root")!).render(<App />))
+  .catch(() => {
+    // Fail closed: never fall back to persistent mode when configuration fails.
+    document.getElementById("root")!.textContent =
+      "Acronym could not connect to its workspace configuration. Please reload to try again. No assessment has been opened.";
+  });
