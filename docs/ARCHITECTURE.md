@@ -1,10 +1,10 @@
 # Architecture
 
-The browser and API share one localhost origin. In development, Express mounts Vite middleware. In production, it serves the compiled React assets. No cloud process is involved.
+The browser and API share one origin. In development, Express mounts Vite middleware; production serves compiled React assets. The server chooses a persistent localhost mode or a public temporary mode before creating any store. Azure always uses temporary mode.
 
 - `shared/model.ts`: original question catalog, setup fields, typed records, input schemas, progress counts, conflict checks, outstanding tasks.
 - `shared/handoff.ts`: derives next actions, reviewed security/accessibility transfer blocks, and a submission checklist from the current assessment. New exports store this guide with their fixed snapshot.
-- `server/domain.ts`: validated commands and human-review rules. All persisted business mutations pass through commands except creation, evidence upload, and validated restore.
+- `shared/domain.ts`: validated commands and human-review rules used by both modes. `server/domain.ts` re-exports these rules for compatibility. `shared/validation.ts` holds assessment and portable-backup schemas.
 - `server/store.ts`: SQLite aggregate storage with optimistic revisions, prepared statements, and SHA-256-addressed immutable evidence files.
 - `migrations/001_initial.sql`: assessment and export-snapshot tables plus migration tracking. Migration 1 is idempotent. Future migrations must be numbered, transactional, and backed up before destructive schema changes.
 - `server/extraction.ts`: bounded document readers. A child process isolates parser failures, imposes a memory ceiling and timeout, and returns plain source text. No HTML from uploads is rendered, no macros run, no spreadsheet formulas execute.
@@ -14,7 +14,17 @@ The browser and API share one localhost origin. In development, Express mounts V
 - `server/ai.ts`: optional provider and suggestion types; nothing is instantiated. Future suggestions must validate quoted passages, honor evidence exclusions, and cannot approve records.
 - `src/main.tsx`: seven workspace sections; native labels, keyboard controls, visible focus, explicit saves, status announcements, human-readable statuses, and responsive layouts.
 
-## Data and review lifecycle
+## Public temporary workspace
+
+`src/workspace.ts` holds assessments, evidence bytes and immutable export blobs in module memory, isolated per tab. There are no storage APIs, cookies, service workers, or shared server sessions for this workspace. It uses the same command validation and human review rules as local mode. Only extraction, export generation and backup validation cross the network. Browser configuration must load before rendering; failure cannot silently switch to persistent mode. Back/forward cache restoration reloads the page to avoid reviving an old workspace. Reload/close discards work; explicit downloads are the only recovery path.
+
+`server/temporary.ts` provides stateless POST endpoints for extraction, generic report generation, and validated restore. It does not instantiate `Store`, load SQLite, create directories, or retain assessment/export state across requests. The public server has no list/read/save-assessment, evidence-download, or saved-export routes. Requests are limited to two concurrent operations per process, 10 MB per upload and 80 MB JSON, with the existing isolated-parser memory/time/expansion limits. Temporary outputs are returned directly as JSON/base64; download blobs stay in the requesting tab. No request body or parser diagnostic text is logged by this public API. Response caching is disabled. Runtime memory reclamation is garbage collection, not secure erasure; the app does not control platform swap, crash recovery or infrastructure diagnostics.
+
+`server/http.ts` validates the platform hostname / configured HTTPS origin, retains same-origin protections and CSP, and leaves only health independent of host/origin restrictions. `server/index.ts` creates the persistent store only in local mode. Azure detection forces temporary mode, listens on all interfaces on the platform port, and uses the platform-provided hostname. Existing portal settings and identity remain unchanged.
+
+Review names remain acknowledgments, not verified identities. Tab-held records are user-controlled; these reports are preparation aids, not signed or tamper-evident certifications. Export still validates structure and completion requirements. Public data is not automatically recoverable; the UI explains downloads and an explicit clear-session action.
+
+## Data and review lifecycle (persistent local mode)
 
 An assessment owns its product configuration, answers, evidence metadata, tests, criteria, and history. Source files are stored under `data/files/<sha256>`; user filenames never select a filesystem path. Metadata includes product/version, upload time, extraction locations, and relevance.
 
@@ -26,7 +36,7 @@ A criterion judgment is separate from each test outcome. Supports needs complete
 
 ## Local security boundary
 
-The server binds only to `127.0.0.1`, checks Host and Origin, rejects cross-site requests, and requires a custom header for mutations. There is no CORS permission. Production responses set a Content Security Policy. Local OS users are the trust boundary: there is no account system or verified identity. HTTP on loopback is used, not TLS.
+Local mode binds only to `127.0.0.1`, checks Host and Origin, rejects cross-site requests, and requires a custom header for mutations. The public health endpoint bypasses host/origin checks in both modes; it exposes no user data. There is no CORS permission. Production responses set a Content Security Policy. Local OS users are the trust boundary: there is no account system or verified identity. HTTP on loopback is used, not TLS.
 
 The app requests private directory/file modes on POSIX systems. This does not provide encryption, anti-malware scanning, or protection from another process running as the same user. Evidence downloads use attachment disposition and a binary MIME type. Extracted text and user text are React text nodes. Secret files, SQLite, uploads, snapshots, backups, and local QA outputs are ignored by Git.
 
@@ -34,10 +44,10 @@ The aggregate design trades a simple prototype for write amplification: history 
 
 ## CU Launch and future work
 
-No CU Launch protocol or deployment configuration was supplied, so none is invented. Preserve these seams for the next increment:
+CU Launch provides the single-root Express deployment workflow and manifest. Public use is deliberately stateless. Preserve these seams for later increments:
 
 1. Establish platform licensing and exact template fixtures; build and independently verify one official version adapter.
-2. Define CU Launch identity, tenancy, origins, storage, encryption/retention, backups, and deployment protocols before exposing a hosted service. Replace loopback trust with authenticated authorization and isolate each customer’s data.
+2. If persistent hosted assessments are requested later, define identity, tenancy, retention, encryption and backups first. Do not enable the local database behind a public proxy or repurpose temporary mode as shared storage.
 3. Add structured standards catalogs with versioned criterion scope and official terminology rules. An empty registry must remain fail-closed.
 4. If adding AI, require opt-in disclosure of exactly what leaves the machine, server-side credentials, evidence exclusions, citation verification, and suggestion-only commands. Source text remains data, including instructions embedded in documents.
 

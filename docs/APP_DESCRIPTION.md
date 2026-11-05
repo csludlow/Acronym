@@ -16,4 +16,4 @@ Acronym helps small software vendors prepare security questionnaires and accessi
 - Review responses, resolve missing information, and track changes.
 - Download a preparation package and follow clear steps to finish and submit the purchaser’s requested documents.
 
-Acronym is an unofficial preparation guide. The user completes the requested questionnaire and report, verifies accuracy and coverage, and approves the final submission. The current prototype runs locally with external AI processing disabled.
+Acronym is an unofficial preparation guide. The user completes the requested questionnaire and report, verifies accuracy and coverage, and approves the final submission. The public workspace requires no account and does not automatically save work. Vendors prepare their assessment in an open browser tab, then download their reports and a portable backup before leaving. Upload extraction and report generation use temporary server memory. External AI processing is disabled.

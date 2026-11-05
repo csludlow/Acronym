@@ -29,3 +29,14 @@ Build and Node startup contain no Adobe fetch or font-readiness wait. PDF genera
 The initial diagnostic-only commit uses `[skip ci]` to prevent the existing push-to-deploy workflow from running; diagnostics are then dispatched explicitly. The application/typography fixes remain in draft PR #2. Future ordinary main pushes still trigger the existing deployment workflow.
 
 Local checks: three isolated fixtures verify read-only commands, redaction, host validation and no redirect following; workflow YAML parses through Prettier.
+
+
+## 2026-11-05: recovered deployment services and public temporary workspace
+
+Read-only diagnostic run `42109921924` could read empty deployment history and download runtime logs; these reads had returned 503 on November 4. Runtime diagnostics still found `ENOENT`, npm errors, and failed-start signals. Public health was 503 before this retry. These observations indicate the deployment/log services responded again; they do not establish the precise root cause of the platform incident.
+
+The owner clarified the hosted audience: public access for outside vendors doing real assessments, with no saved data. Hosted startup now selects a separate stateless app, never the local SQLite store. Browser tab memory holds each vendor's workspace; the server processes documents/exports per request in memory. Reload/close clears the tab. Explicit reports and portable backups are vendor-owned downloads. Local mode retains its existing persistence. The UI and README disclose these boundaries, transmissions, external fonts, and limits of application-level non-persistence.
+
+Azure uses its supplied `WEBSITE_HOSTNAME` and `PORT`; health is always public, and hosted mode binds to all interfaces. A local-mode setting cannot enable persistent storage on Azure. No cloud resources, secrets, sign-in, or database were added. Adobe font failure still cannot block the app or PDF export.
+
+Authoritative runtime guidance checked November 5, 2026: [App Service environment variables](https://learn.microsoft.com/en-us/azure/app-service/reference-app-settings) and [Node.js configuration](https://learn.microsoft.com/en-us/azure/app-service/configure-language-nodejs). The browser-memory workspace and no-persistence policy are product decisions from the owner's request, not Azure requirements.

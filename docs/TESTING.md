@@ -1,5 +1,18 @@
 # Verification results
 
+## Public temporary workspace verification — November 5, 2026
+
+Strict TypeScript checking and production build passed on Node 24.22.1. All **33 backend/document tests** and **6 browser tests** passed; the three public API/startup tests were repeated after tightening the processing limit. The browser workflow runs in both persistent localhost and temporary public modes. Earlier dated results below remain historical.
+
+New checks verify stateless extraction/export/restore, unsupported public persistence routes, no cookie issuance, no response caching, origin/header rejection, public health independent of origin, unsupported-template rejection, final-report gates, and production Azure startup without creating `DATA_DIR` or a SQLite database. Azure detection overrides an accidental local-mode setting.
+
+The public browser test creates a synthetic assessment, attaches evidence, approves a negative answer with its citation, records a failed accessibility test, and downloads DOCX/PDF/JSON and a portable backup. JSON assertions preserve the negative response, approval, citation, and failure. A second tab has no assessments or author; local/session storage, IndexedDB and application cookies remain empty. Reload clears work; explicit backup restore recovers the content and requires renewed review. The end-session action clears work again. Both modes pass keyboard/labels and stalled-Adobe-request tests. Local persistence and document round-trip tests remain in the suite.
+
+The first keyboard run pressed Tab before asynchronous configuration completed. The test now waits for the named author field before checking the first tab stop; all six browser tests then passed. No keyboard navigation code was weakened.
+
+This verifies application behavior, not Azure or browser forensic erasure, memory/swap policy, infrastructure logging, a penetration test, or native desktop accessibility conformance. Synthetic content only was used. Live Azure publishing and a clean Linux installation are checked separately and recorded in publishing notes.
+
+
 Verified locally on **2026-11-04**, macOS, Node **24.22.1**, installed Google Chrome, and the installed dependency versions from the previous pnpm lockfile.
 
 ## CU Launch package compatibility check
