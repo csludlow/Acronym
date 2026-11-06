@@ -180,7 +180,17 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
     expect(
       await page.evaluate(() => [localStorage.length, sessionStorage.length]),
     ).toEqual([0, 0]);
-    expect(await page.context().cookies()).toEqual([]);
+    const cookieNames = (await page.context().cookies()).map((c) => c.name);
+    // Azure adds routing cookies independently of the application. They do not
+    // contain the assessment or identify an application workspace.
+    expect(
+      cookieNames.filter((name) =>
+        process.env.ACRONYM_TEST_URL &&
+        ["ARRAffinity", "ARRAffinitySameSite"].includes(name)
+          ? false
+          : true,
+      ),
+    ).toEqual([]);
     expect(await page.evaluate(() => indexedDB.databases())).toEqual([]);
     expect(existsSync(".local/must-not-exist-public")).toBe(false);
     page.on("dialog", (dialog) => dialog.accept());

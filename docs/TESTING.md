@@ -1,5 +1,21 @@
 # Verification results
 
+## Live Azure verification — November 6, 2026
+
+Deployment [42116061701](https://github.com/cu-app-portal-repos/acronym/actions/runs/42116061701) succeeded on November 5 for commit `b459eca`. The live `/api/health` returned HTTP 200 on November 6. GitHub's clean Linux build and full suite passed in [42115291819](https://github.com/cu-app-portal-repos/acronym/actions/runs/42115291819).
+
+All **3 public browser tests passed against the live Azure URL** using synthetic content only. This exercises extraction, review, failed accessibility findings, DOCX/PDF/JSON downloads, negative answers and source references, portable backup/restore, separate-tab isolation, reload/end-session clearing, and keyboard navigation. The suite also verifies the app remains usable during a stalled Adobe font request. With `CU_VERIFY_FONTS=1`, the full workflow confirmed Minion Pro and Myriad Pro loaded from the live hostname.
+
+The application creates no cookies. Azure does set its two routing cookies (`ARRAffinity` and `ARRAffinitySameSite`); live tests allow only these platform cookies and still require empty local storage, session storage and IndexedDB. This is distinct from assessment persistence. The application data-directory assertion is a local startup check; the live browser test does not inspect Azure's underlying disk, swap, or logs.
+
+Repeat this explicit synthetic live test when needed:
+
+```sh
+ACRONYM_TEST_URL=https://app-acronym-cmw2fde0.azurewebsites.net CU_VERIFY_FONTS=1 npm run test:e2e
+```
+
+When `ACRONYM_TEST_URL` is set, Playwright uses only the public project and does not launch local servers. Without it, the existing local/public localhost suite remains unchanged. No real vendor records are used.
+
 ## Public temporary workspace verification — November 5, 2026
 
 Strict TypeScript checking and production build passed on Node 24.22.1. All **33 backend/document tests** and **6 browser tests** passed; the three public API/startup tests were repeated after tightening the processing limit. The browser workflow runs in both persistent localhost and temporary public modes. Earlier dated results below remain historical.

@@ -36,3 +36,8 @@ myriad-bold.otf
 `.ttf` files with the same base names also work. Set `CU_PDF_FONT_DIR=/private/path/to/fonts` before starting the server. The font directory is not exposed through HTTP. All four roles must be present; incomplete configuration fails visibly. Verify the applicable font license before deployment. A web-font subscription alone is not recorded as server permission.
 
 Without this configuration, PDF exports use bundled Noto Serif for body text and Noto Sans for headings and include a visible font note. These are fallbacks, not claimed to be Minion or Myriad. The fonts remain available offline and preserve report content. The exact CU PDF typography is unverified until the licensed font files are configured.
+
+
+## Live deployment check — November 6, 2026
+
+The browser workflow at `app-acronym-cmw2fde0.azurewebsites.net` successfully loaded `minion-pro` and `myriad-pro` from kit `yya5cit`. No Adobe kit settings were changed during this publishing retry. The stalled-font regression also passed against the live site. PDF exports continue to use local report fonts or their disclosed fallback; web-font availability does not grant PDF embedding rights.

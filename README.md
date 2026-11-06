@@ -2,6 +2,8 @@
 
 Acronym helps small software vendors prepare security questionnaires and accessibility reports for college and university purchasers. It explains unfamiliar questions, organizes evidence and testing results, and guides users through human review. Users leave with an editable preparation package and clear next steps for completing the requested HECVAT and VPAT-based documents.
 
+**Open the app:** [Acronym vendor workspace](https://app-acronym-cmw2fde0.azurewebsites.net). Public source: [csludlow/Acronym](https://github.com/csludlow/Acronym).
+
 **Working prototype:** React and TypeScript with a Node/Express server. The public Azure workspace keeps work in the open browser tab without saving vendor content on the server or in browser storage. The separate localhost mode retains SQLite and local evidence files. AI is disabled; no API key is needed.
 
 **Official-template boundary:** this release supplies original preparation content and generic DOCX/PDF/JSON reports. It does not bundle HECVAT questions, generate an official HECVAT workbook, or produce an official VPAT®-based ACR. HECVAT platform licensing is not established. Official exports fail visibly rather than guessing. See [standards research](docs/STANDARDS.md).
@@ -15,7 +17,7 @@ Outside vendors can prepare real assessments without an account. Work stays in t
 - Product details, answers, reviews, and test edits run in the tab.
 - Uploads go to the server for bounded text extraction. Report generation sends the assessment to the server. Restore sends the chosen backup for validation. Processing uses temporary memory; the application does not write this content to files or a database, or log request bodies/document text.
 - Download DOCX/PDF/JSON to keep a fixed preparation package. Download **assessment backup** to resume later; restore requires renewed human review. Downloaded files are not encrypted by Acronym and remain wherever the vendor saves them.
-- Adobe supplies optional fonts and receives normal font-request information, not assessment fields. Azure and network services may retain operational metadata. Application-level non-persistence is not a guarantee of forensic erasure from operating-system memory, swap, browser crash recovery, or infrastructure diagnostics.
+- Adobe supplies optional fonts and receives normal font-request information, not assessment fields. Azure adds routing cookies (`ARRAffinity` and `ARRAffinitySameSite`); these do not contain assessment content. Azure and network services may retain operational metadata. Application-level non-persistence is not a guarantee of forensic erasure from operating-system memory, swap, browser crash recovery, or infrastructure diagnostics.
 
 Azure automatically uses temporary mode from its platform-provided `WEBSITE_HOSTNAME`; even `APP_MODE=local` cannot enable the persistent store on Azure. The app listens on Azure's `PORT` and accepts its configured HTTPS origin. No new database or sign-in is needed. `GET /api/health` is public and independent of storage.
 

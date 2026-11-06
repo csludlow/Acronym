@@ -40,3 +40,16 @@ The owner clarified the hosted audience: public access for outside vendors doing
 Azure uses its supplied `WEBSITE_HOSTNAME` and `PORT`; health is always public, and hosted mode binds to all interfaces. A local-mode setting cannot enable persistent storage on Azure. No cloud resources, secrets, sign-in, or database were added. Adobe font failure still cannot block the app or PDF export.
 
 Authoritative runtime guidance checked November 5, 2026: [App Service environment variables](https://learn.microsoft.com/en-us/azure/app-service/reference-app-settings) and [Node.js configuration](https://learn.microsoft.com/en-us/azure/app-service/configure-language-nodejs). The browser-memory workspace and no-persistence policy are product decisions from the owner's request, not Azure requirements.
+
+
+## 2026-11-06: successful deployment and live verification
+
+PR #2 merged at `b459eca` after local checks and clean Linux CI [42115291819](https://github.com/cu-app-portal-repos/acronym/actions/runs/42115291819) passed. The merge used `[skip ci]` to avoid a simultaneous automatic deployment while requesting one explicit retry. The CU Launch retry connector returned `ACTION_REQUIRED` / “Open CU Launch for this app workflow” for this imported app. Following the documented recovery path and the owner's retry authorization, the existing GitHub deployment workflow was dispatched against main. No personal Azure login or new cloud identity was used.
+
+[Deployment run 42116061701](https://github.com/cu-app-portal-repos/acronym/actions/runs/42116061701) completed successfully on November 5: install, frontend build, settings preflight, first OIDC login attempt, and Azure deployment all succeeded. On November 6, the public health endpoint returned HTTP 200 and all three public browser tests passed against the live Azure URL. Tests covered the synthetic vendor workflow, document downloads, backup restore, separate tabs, reload/clear behavior, keyboard access, real Adobe font loading, and stalled-font resilience. See `docs/TESTING.md`.
+
+CU Launch's status connector still reports its older November 4 failed attempt (`41889830163`), rather than this manually dispatched successful run. This is a stale portal record; the successful GitHub run and direct live checks are the verification sources. No attempt was made to rewrite portal records or broaden permissions.
+
+The managed repository is private; the original `csludlow/Acronym` repository is public. The public repository is kept as a source mirror, with the CU Launch managed repository remaining the deployment source of truth. Deployment and diagnostic jobs now explicitly require `github.repository == 'cu-app-portal-repos/acronym'`, so copying source to the public repository cannot trigger Azure actions there. The verification/documentation commit uses `[skip ci]` because no application runtime code changed and another deployment is unnecessary.
+
+Azure adds two routing cookies even though the app creates no application cookies. They contain no assessment data. No assessment persistence setting, database, resource, secret, or authentication policy was added or changed in this retry.

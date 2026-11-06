@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   diagnose:
-    if: github.ref == 'refs/heads/main'
+    if: github.repository == 'cu-app-portal-repos/acronym' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
