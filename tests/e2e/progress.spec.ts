@@ -18,7 +18,6 @@ test("save progress from setup, reopen after reload, and resume without losing e
   await page
     .getByLabel("Vendor name", { exact: true })
     .fill("Synthetic progress vendor");
-  await page.getByLabel("Vendor name confirmed", { exact: true }).check();
   await page
     .getByRole("button", { name: "Save and next", exact: true })
     .click();
@@ -48,13 +47,17 @@ test("save progress from setup, reopen after reload, and resume without losing e
   expect(data.assessment.product.details.product).toBe(
     "Synthetic progress product",
   );
-  expect(data.assessment.product.confirmed).toContain("vendor");
+  expect(data.assessment.product.confirmed).toEqual([]);
   page.on("dialog", (d) => d.accept());
   await page.reload();
   await page.getByLabel("Progress file (.json)").setInputFiles(path);
   await page
     .getByRole("button", { name: "Open progress file", exact: true })
     .click();
+  await expect(
+    page.getByLabel("Product version", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
   await expect(page.getByLabel("Product name", { exact: true })).toHaveValue(
     "Synthetic progress product",
   );
@@ -64,13 +67,11 @@ test("save progress from setup, reopen after reload, and resume without losing e
   await page
     .getByRole("button", { name: "Open another progress file" })
     .click();
-  await page
-    .getByLabel("Progress file (.json)")
-    .setInputFiles({
-      name: "bad.json",
-      mimeType: "application/json",
-      buffer: Buffer.from("{bad"),
-    });
+  await page.getByLabel("Progress file (.json)").setInputFiles({
+    name: "bad.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("{bad"),
+  });
   await page
     .getByRole("button", { name: "Open progress file", exact: true })
     .click();
@@ -95,19 +96,17 @@ test("older backup opens at the next unanswered question and requires approval a
     notes: "Synthetic",
   });
   await page.goto("/");
-  await page
-    .getByLabel("Progress file (.json)")
-    .setInputFiles({
-      name: "older-backup.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify({
-          format: "acronym-backup-v1",
-          assessment: a,
-          files: [],
-        }),
-      ),
-    });
+  await page.getByLabel("Progress file (.json)").setInputFiles({
+    name: "older-backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        format: "acronym-backup-v1",
+        assessment: a,
+        files: [],
+      }),
+    ),
+  });
   await page
     .getByRole("button", { name: "Open progress file", exact: true })
     .click();

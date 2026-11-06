@@ -14,7 +14,6 @@ export function resumePoint(a: Assessment) {
   const detail = fields.findIndex(
     (key) =>
       isUnknown(a.product.details[key]) ||
-      !a.product.confirmed.includes(key) ||
       (key === "assessmentDate" &&
         (!/^\d{4}-\d{2}-\d{2}$/.test(a.product.details[key]) ||
           !Number.isFinite(Date.parse(a.product.details[key])))),
@@ -40,6 +39,12 @@ export function resumePoint(a: Assessment) {
       tab: "Product setup" as const,
       section: "setup",
       step: fields.length + claims.length,
+    };
+  if (fields.some((key) => !a.product.confirmed.includes(key)))
+    return {
+      tab: "Product setup" as const,
+      section: "setup",
+      step: fields.length + claims.length + 1,
     };
   const question = questions.findIndex((q) => !answerComplete(a.answers[q.id]));
   if (question >= 0)

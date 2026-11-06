@@ -38,7 +38,7 @@ npm install
 npm run dev
 ```
 
-Open **http://127.0.0.1:4310**. Enter your name and choose **Explore synthetic demo**, or create a blank assessment. No default standard is selected. Saved changes survive reloads and server restarts.
+Open **http://127.0.0.1:4310**. Enter your personal name in **Your name** in the main workspace and choose **Explore synthetic demo**, or create a blank assessment. No default standard is selected. Saved changes survive reloads and server restarts.
 
 For a production-style local run:
 
@@ -55,7 +55,7 @@ This is one root Express application, not a package workspace. CU Launch uses it
 
 ## Walk through the prototype
 
-1. **Product setup:** answer one prompt at a time with **Save and next**, **Back**, or **Skip for now**. The return list keeps unconfirmed items visible. Record vendor/product/version, data flows, deployment, responsibilities, owner, purchaser requests, scope, and evaluation methods. Confirm facts separately. Unknowns stay open. The postal demo’s customer descriptions are unconfirmed and do not imply that traffic, support access, backups, or payments are absent.
+1. **Product setup:** answer one prompt at a time with **Save and next**, **Back**, or **Skip for now**. The return list keeps unconfirmed items visible. Record vendor/product/version, data flows, deployment, responsibilities, owner, purchaser requests, scope, and evaluation methods. Save answers as drafts, then use **Review setup details together** and **Confirm reviewed setup details** to check the recorded information in one place. Unknowns stay open. The postal demo’s customer descriptions are unconfirmed and do not imply that traffic, support access, backups, or payments are absent.
 2. **Evidence:** upload a PDF, DOCX, TXT, XLSX, CSV, or TSV. Inspect extracted text, product/version, source locations, and relevance. Mark it Current only after checking. A policy is evidence of stated policy, not proof of implementation.
 3. **Questionnaire:** work through one original question at a time with Back, Save and next, and Skip for now. Skipping does not change an answer or approve it; the return list and end-of-questions summary show unresolved work. Use the plain-language explanations, response format, and evidence suggestions. Add an answer, citations, completed tests, or a human attestation. No is valid. Not applicable needs a reason and confirmation. Save before switching questions.
 4. **Accessibility:** define actual criterion identifiers, standards, levels, and scope; the supplied areas are just starters. Record screens, workflow, OS/configuration, methods/tools/assistive technologies, expected and observed behavior, tester/date, findings, limitations, and remediation. Link evidence. Record criterion judgments separately with a named reviewer and coverage acknowledgment.

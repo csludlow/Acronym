@@ -917,3 +917,30 @@ code {
   margin: 10px 0 0;
   font-size: 14px;
 }
+
+.author-panel {
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  background: #fff;
+  border: 1px solid #c8d3dc;
+  border-radius: 8px;
+}
+.author-panel input {
+  max-width: 440px;
+}
+.setup-review-table {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+.setup-review-table table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.setup-review-table th,
+.setup-review-table td {
+  padding: 12px;
+  border-bottom: 1px solid #dce3e8;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}

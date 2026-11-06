@@ -26,8 +26,11 @@ test("guided setup and questions skip without inventing answers and advance only
   await page
     .getByRole("button", { name: "Save and next", exact: true })
     .click();
-  await expect(page.getByRole("alert")).toContainText("Enter your name");
+  await expect(page.getByRole("alert")).toContainText(
+    "Enter your personal name",
+  );
   await expect(page.getByLabel("Vendor name", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Your name", { exact: true })).toBeFocused();
   await page.getByLabel("Your name", { exact: true }).fill("Guide tester");
   await page
     .getByRole("button", { name: "Save and next", exact: true })

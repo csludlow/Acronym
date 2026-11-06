@@ -65,3 +65,8 @@ Local verification: TypeScript, production build, and eight browser tests passed
 ## Progress-file handoff — November 6, 2026
 
 The owner requested visible save/open controls and resume behavior. Save progress file is available across assessment sections; Open progress file is on the welcome screen and available from an open workspace. The UI reminds users to save before leaving and requires current form edits to be applied first. Existing backup validation/format and approval invalidation are preserved, including compatibility with older files. Reopening navigates to unfinished recorded content. No database, automatic browser storage, cloud resource, or retention setting was added. Local type/build checks, two resume unit tests, and twelve browser tests passed before publishing through the existing automatic deployment.
+
+
+## First-question save correction — November 6, 2026
+
+The owner reported a visible name followed by a missing-name error, and requested one setup review instead of repeated confirmation checkboxes. A regression reproduced the missing-name error when the displayed personal name changed without an input event. The main-workspace personal-name control now survives unrelated renders; commands use its displayed value, and missing-name errors focus it. Vendor name remains separate from personal author attribution. The setup review explicitly confirms known recorded details together; unknowns and edited details remain unresolved. Local type/build checks, two resume tests, and all sixteen browser tests passed before the usual main-branch deployment. No hosting, storage, identity, or API permission changes were needed.

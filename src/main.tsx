@@ -377,13 +377,27 @@ function App() {
           : "Assessment created. Start with the product details you know.",
       );
     });
+  const updateActor = (value: string) => {
+    setActor(value);
+    if (!ephemeral) localStorage.setItem("acronym-author", value);
+  };
   const command = (c: unknown, onSuccess?: () => void) =>
     run(async () => {
-      if (!actor.trim())
-        throw new Error("Enter your name in the sidebar before saving.");
+      const nameInput = document.getElementById(
+        "assessment-author",
+      ) as HTMLInputElement | null;
+      const author = (nameInput ? nameInput.value : actor).trim();
+      if (!author) {
+        nameInput?.focus();
+        nameInput?.scrollIntoView({ block: "center" });
+        throw new Error(
+          "Enter your personal name in “Your name” above. “Vendor name” is the company name.",
+        );
+      }
+      updateActor(author);
       const next = await api(`/assessments/${a!.id}/commands`, {
         revision: a!.revision,
-        actor,
+        actor: author,
         command: c,
       });
       onSuccess?.();
@@ -495,15 +509,6 @@ function App() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <Field
-            label="Your name"
-            value={actor}
-            onChange={(s) => {
-              setActor(s);
-              if (!ephemeral) localStorage.setItem("acronym-author", s);
-            }}
-            hint="Recorded as author; identity is not verified."
-          />
           <button
             className="secondary"
             onClick={() => navigate(() => void create(false))}
@@ -534,6 +539,28 @@ function App() {
           </div>
         </header>
         <div className="content">
+          <section
+            className="author-panel"
+            aria-label="Person completing this assessment"
+          >
+            <label className="field">
+              <span>Your name</span>
+              <input
+                id="assessment-author"
+                aria-label="Your name"
+                autoComplete="name"
+                maxLength={200}
+                defaultValue={actor}
+                onInput={(e) => updateActor(e.currentTarget.value)}
+                onBlur={(e) => updateActor(e.currentTarget.value)}
+              />
+              <small>
+                Your personal name, recorded with your edits. Vendor name means
+                the company name. No sign-in is required; identity is not
+                verified.
+              </small>
+            </label>
+          </section>
           {ephemeral && (
             <div className="notice">
               <strong>Your work stays in this tab.</strong> Acronym does not
@@ -880,6 +907,69 @@ function Setup({
           {remaining} setup items still need information or confirmation. You
           can start the questionnaire and return to these details later.
         </p>
+        <p>
+          Check the details below, then confirm the known information together.
+          Unknown answers remain unresolved. This review records accuracy of the
+          description, not security or accessibility compliance.
+        </p>
+        <div className="setup-review-table">
+          <table>
+            <caption>Product details to review</caption>
+            <thead>
+              <tr>
+                <th scope="col">Detail</th>
+                <th scope="col">Recorded answer</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {details.map(([key, label], i) => (
+                <tr key={key}>
+                  <th scope="row">{label}</th>
+                  <td>{p.details[key] || "Unknown"}</td>
+                  <td>
+                    <button className="quiet" onClick={() => navigate(i)}>
+                      Edit {label}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <dl>
+          {claims.map(([key, label]) => (
+            <React.Fragment key={key}>
+              <dt>{label}</dt>
+              <dd>{p.claims[key]}</dd>
+            </React.Fragment>
+          ))}
+        </dl>
+        <button
+          onClick={() =>
+            void command({
+              type: "product",
+              value: {
+                ...p,
+                confirmed: details
+                  .filter(
+                    ([key]) =>
+                      !isUnknown(p.details[key]) &&
+                      (key !== "assessmentDate" ||
+                        (/^\d{4}-\d{2}-\d{2}$/.test(p.details[key]) &&
+                          Number.isFinite(Date.parse(p.details[key])))),
+                  )
+                  .map(([key]) => key),
+              },
+            })
+          }
+        >
+          Confirm reviewed setup details
+        </button>
+        <p className="muted">
+          Only choose this after checking each recorded detail. You can continue
+          to the questionnaire and return to this review later.
+        </p>
         <div className="actions">
           <button onClick={() => navigate(total - 1)}>Back</button>
           <button className="secondary" onClick={() => navigate(0)}>
@@ -899,9 +989,8 @@ function Setup({
   return (
     <div className="guided-flow">
       <p className="notice">
-        Answer what you know. Skip moves on without changing or confirming a
-        detail. Unknown and unconfirmed information stays on your follow-up
-        list.
+        Answer what you know and skip anything you need to check. Saving records
+        a draft; you’ll review all setup details together at the end.
       </p>
       <p aria-live="polite" className="eyebrow">
         Setup question {step + 1} of {total}
@@ -958,22 +1047,9 @@ function Setup({
                   })
                 }
               />
-              <Check
-                label={`${field[1]} confirmed`}
-                checked={p.confirmed.includes(field[0])}
-                onChange={(checked) =>
-                  setP({
-                    ...p,
-                    confirmed: checked
-                      ? [...p.confirmed, field[0]]
-                      : p.confirmed.filter((k) => k !== field[0]),
-                  })
-                }
-              />
               <p className="muted">
-                Confirm only after checking this information. Confirmation
-                records a verified description; it does not establish
-                compliance.
+                You can save this as a draft now. You’ll review the recorded
+                details together at the end of setup.
               </p>
             </>
           ) : claim ? (
@@ -1042,6 +1118,9 @@ function Setup({
           </p>
         </form>
       </Card>
+      <button className="secondary" onClick={() => navigate(total)}>
+        Review setup details together
+      </button>
       <details className="card question-nav">
         <summary>
           Return to a setup question · {remaining} need attention
@@ -1050,7 +1129,11 @@ function Setup({
           <button key={key} onClick={() => navigate(i)}>
             {i + 1}. {label}
             <small>
-              {p.confirmed.includes(key) ? "Confirmed" : "Needs confirmation"}
+              {isUnknown(p.details[key])
+                ? "Needs an answer"
+                : p.confirmed.includes(key)
+                  ? "Reviewed"
+                  : "Saved draft"}
             </small>
           </button>
         ))}

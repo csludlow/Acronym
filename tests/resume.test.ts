@@ -10,8 +10,14 @@ test("resume selects unfinished setup, unknown claims and scope without assuming
   assert.deepEqual(resumePoint(a), {
     tab: "Product setup",
     section: "setup",
-    step: Object.keys(productFields).indexOf("version"),
+    step: Object.keys(productFields).length + 6,
   });
+  a.product.details.version = "Unknown";
+  assert.equal(
+    resumePoint(a).step,
+    Object.keys(productFields).indexOf("version"),
+  );
+  a.product.details.version = "1.0";
   a.product.confirmed.push("version");
   a.product.claims.remoteAccess = "Unknown";
   assert.equal(resumePoint(a).step, Object.keys(productFields).length + 3);

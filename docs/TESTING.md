@@ -1,5 +1,11 @@
 # Verification results
 
+## First-question name entry and setup review — November 6, 2026
+
+A regression reproduced the reported error on the previous build: placing a visible personal name in the input without firing an input event, then saving the first setup question, showed “Enter your name in the sidebar before saving.” The same regression passes after the fix. This reproduces one autofill-style failure path; it does not identify the exact behavior of the reporter's browser.
+
+Type checking, build, two resume unit tests, and all **16 browser tests** passed in local/public modes. Coverage includes typed and browser-filled author names, focus on a missing personal name, one final setup review, preserving unknowns, clearing confirmation after edits, reopening at unanswered fields or the final review, and the existing evidence/export/progress workflows. The reviewer recorded in history is checked in the downloaded progress file.
+
 ## Progress-file workflow — November 6, 2026
 
 Type checking, production build, two resume-selection unit tests, and all **12 browser tests** passed locally. New coverage verifies saving from setup, preventing omission of unapplied edits, reopening after reload at the next unconfirmed setup field, rejecting malformed files without replacing current work, and opening an older backup at the next unanswered questionnaire prompt. Imported approvals require review again; saved negative answers remain negative. The full synthetic workflow also preserves evidence and citations through a progress-file round trip in public mode. Both local and temporary modes pass.
