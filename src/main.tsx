@@ -7,6 +7,7 @@ import {
   metrics,
   outstanding,
   conflicts,
+  isUnknown,
   type Assessment,
   type Answer,
   type Reference,
@@ -79,7 +80,25 @@ function DownloadLink({
     </>
   );
 }
-let temporaryQuestion = questions[0].id;
+const guidePositions = new Map<string, number>();
+function useGuidePosition(
+  assessmentId: string,
+  section: string,
+  total: number,
+) {
+  const key = `${assessmentId}-${section}`;
+  const [step, setStep] = useState(() =>
+    Math.min(guidePositions.get(key) ?? 0, total),
+  );
+  const move = (next: number) => {
+    guidePositions.set(key, next);
+    setStep(next);
+  };
+  useEffect(() => {
+    document.getElementById("guide-heading")?.focus();
+  }, [step]);
+  return [step, move] as const;
+}
 function Field({
   label,
   value,
@@ -355,17 +374,17 @@ function App() {
           : "Assessment created. Start with the product details you know.",
       );
     });
-  const command = (c: unknown) =>
+  const command = (c: unknown, onSuccess?: () => void) =>
     run(async () => {
       if (!actor.trim())
         throw new Error("Enter your name in the sidebar before saving.");
-      setA(
-        await api(`/assessments/${a!.id}/commands`, {
-          revision: a!.revision,
-          actor,
-          command: c,
-        }),
-      );
+      const next = await api(`/assessments/${a!.id}/commands`, {
+        revision: a!.revision,
+        actor,
+        command: c,
+      });
+      onSuccess?.();
+      setA(next);
       await refresh();
       setMessage(
         ephemeral
@@ -402,8 +421,8 @@ function App() {
         <div className="local">
           <span />
           {ephemeral
-            ? "TEMPORARY WORKSPACE · AI OFF"
-            : "LOCAL WORKSPACE · AI OFF"}
+            ? "Your work is not saved automatically"
+            : "Your work is saved on this computer"}
         </div>
         <label className="field">
           <span>Current assessment</span>
@@ -499,11 +518,13 @@ function App() {
                   sent to the server for text extraction; assessment content is
                   sent when generating reports or restoring backups. These
                   operations use temporary memory, without writing your content
-                  to a database or files. No AI service receives your content.
-                  Adobe supplies the optional fonts and receives standard
-                  font-request information, not assessment fields. Hosting
-                  services may retain connection and diagnostic metadata.
-                  Downloads you choose to keep are not encrypted by Acronym.
+                  to a database or files. The app uses guided questions and
+                  validation rules, not AI-generated answers. No AI service
+                  receives your content. Adobe supplies the optional fonts and
+                  receives standard font-request information, not assessment
+                  fields. Hosting services may retain connection and diagnostic
+                  metadata. Downloads you choose to keep are not encrypted by
+                  Acronym.
                 </p>
               </details>
               {list.length > 0 && (
@@ -598,11 +619,23 @@ function App() {
                 key={`${a.id}-${a.revision}-${tab}`}
               >
                 {tab === "Overview" && <Overview a={a} go={(t) => setTab(t)} />}
-                {tab === "Product setup" && <Setup {...common} />}
+                {tab === "Product setup" && (
+                  <Setup
+                    {...common}
+                    clearDirty={() => setDirty(false)}
+                    go={setTab}
+                  />
+                )}
                 {tab === "Evidence" && (
                   <EvidenceArea {...common} run={run} update={setA} />
                 )}
-                {tab === "Questionnaire" && <Questionnaire {...common} />}
+                {tab === "Questionnaire" && (
+                  <Questionnaire
+                    {...common}
+                    clearDirty={() => setDirty(false)}
+                    go={setTab}
+                  />
+                )}
                 {tab === "Accessibility" && <Accessibility {...common} />}
                 {tab === "Review queue" && <Review {...common} />}
                 {tab === "Exports" && (
@@ -632,7 +665,7 @@ function App() {
 type Common = {
   a: Assessment;
   actor: string;
-  command: (c: unknown) => Promise<void>;
+  command: (c: unknown, onSuccess?: () => void) => Promise<void>;
 };
 function Overview({ a, go }: { a: Assessment; go: (t: Tab) => void }) {
   const m = metrics(a),
@@ -744,27 +777,112 @@ function Overview({ a, go }: { a: Assessment; go: (t: Tab) => void }) {
     </>
   );
 }
-function Setup({ a, command }: Common) {
+function Setup({
+  a,
+  command,
+  clearDirty,
+  go,
+}: Common & { clearDirty: () => void; go: (tab: Tab) => void }) {
   const [p, setP] = useState(a.product);
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        void command({ type: "product", value: p });
-      }}
-    >
-      <Card title="Product and assessment">
-        <p className="muted">
-          “Unknown” is allowed. Unconfirmed or unknown fields become follow-up
-          tasks. Confirming a field means you have checked the description, not
-          that a control is compliant.
+  const details = Object.entries(productFields) as [ProductKey, string][];
+  const claims = Object.entries({
+    externalTransmissions: "External transmissions occur",
+    carrierTraffic: "Carrier service traffic occurs",
+    vendorDataAccess: "Vendor personnel can access data",
+    remoteAccess: "Remote support can access data",
+    encryption: "Encryption provided by",
+  }) as [keyof typeof p.claims, string][];
+  const total = details.length + claims.length + 1;
+  const [step, move] = useGuidePosition(a.id, "setup", total);
+  const dirty = JSON.stringify(p) !== JSON.stringify(a.product);
+  const navigate = (next: number) => {
+    if (
+      dirty &&
+      !window.confirm(
+        "Leave this question and discard unsaved edits? Your saved details will stay unchanged.",
+      )
+    )
+      return;
+    setP(a.product);
+    clearDirty();
+    move(next);
+  };
+  const field = details[step];
+  const claim = claims[step - details.length];
+  const remaining =
+    details.filter(
+      ([key]) => !p.confirmed.includes(key) || isUnknown(p.details[key]),
+    ).length +
+    claims.filter(([key]) => p.claims[key] === "Unknown").length +
+    (p.criteriaInventoryConfirmed ? 0 : 1);
+  if (step === total)
+    return (
+      <Card>
+        <h2 id="guide-heading" tabIndex={-1}>
+          You’ve reached the end of product setup
+        </h2>
+        <p>
+          {remaining} setup items still need information or confirmation. You
+          can start the questionnaire and return to these details later.
         </p>
-        <div className="grid two">
-          {Object.entries(productFields).map(([key, title]) => (
-            <div className="setup-field" key={key}>
+        <div className="actions">
+          <button onClick={() => navigate(total - 1)}>Back</button>
+          <button className="secondary" onClick={() => navigate(0)}>
+            Review product setup
+          </button>
+          <button onClick={() => go("Questionnaire")}>
+            Start questionnaire
+          </button>
+        </div>
+      </Card>
+    );
+  const title = field
+    ? field[1]
+    : claim
+      ? claim[1]
+      : "Check the accessibility assessment scope";
+  return (
+    <div className="guided-flow">
+      <p className="notice">
+        Answer what you know. Skip moves on without changing or confirming a
+        detail. Unknown and unconfirmed information stays on your follow-up
+        list.
+      </p>
+      <p aria-live="polite" className="eyebrow">
+        Setup question {step + 1} of {total}
+      </p>
+      <progress
+        aria-label="Position in product setup"
+        value={step + 1}
+        max={total}
+      />
+      <Card>
+        <h2 id="guide-heading" tabIndex={-1}>
+          {title}
+        </h2>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const continuing =
+              (e.nativeEvent as SubmitEvent).submitter?.getAttribute(
+                "value",
+              ) === "continue";
+            void command(
+              { type: "product", value: p },
+              continuing
+                ? () => {
+                    clearDirty();
+                    move(step + 1);
+                  }
+                : undefined,
+            );
+          }}
+        >
+          {field ? (
+            <>
               <Field
-                label={title}
-                value={p.details[key as ProductKey]}
+                label={field[1]}
+                value={p.details[field[0]]}
                 multiline={
                   ![
                     "vendor",
@@ -775,77 +893,126 @@ function Setup({ a, command }: Common) {
                     "contact",
                     "level",
                     "edition",
-                  ].includes(key)
+                  ].includes(field[0])
                 }
                 onChange={(value) =>
                   setP({
                     ...p,
-                    details: { ...p.details, [key]: value },
-                    confirmed: p.confirmed.filter((k) => k !== key),
+                    details: { ...p.details, [field[0]]: value },
+                    confirmed: p.confirmed.filter((k) => k !== field[0]),
                   })
                 }
               />
               <Check
-                label={`${title} confirmed`}
-                checked={p.confirmed.includes(key as ProductKey)}
+                label={`${field[1]} confirmed`}
+                checked={p.confirmed.includes(field[0])}
                 onChange={(checked) =>
                   setP({
                     ...p,
                     confirmed: checked
-                      ? [...p.confirmed, key as ProductKey]
-                      : p.confirmed.filter((k) => k !== key),
+                      ? [...p.confirmed, field[0]]
+                      : p.confirmed.filter((k) => k !== field[0]),
                   })
                 }
               />
-            </div>
-          ))}
-        </div>
+              <p className="muted">
+                Confirm only after checking this information. Confirmation
+                records a verified description; it does not establish
+                compliance.
+              </p>
+            </>
+          ) : claim ? (
+            <>
+              <Select
+                label={claim[1]}
+                value={p.claims[claim[0]]}
+                onChange={(value) =>
+                  setP({ ...p, claims: { ...p.claims, [claim[0]]: value } })
+                }
+                options={
+                  claim[0] === "encryption"
+                    ? ["Unknown", "None", "Application", "Workstation", "Both"]
+                    : ["Unknown", "Yes", "No"]
+                }
+              />
+              <p className="muted">
+                Confirm this fact explicitly. No campus integrations does not
+                establish that there are no external transmissions or remote
+                support access.
+              </p>
+            </>
+          ) : (
+            <>
+              <Check
+                label="I have checked that the criterion inventory covers the stated assessment scope and purchaser request."
+                checked={p.criteriaInventoryConfirmed}
+                onChange={(value) =>
+                  setP({ ...p, criteriaInventoryConfirmed: value })
+                }
+              />
+              <p>
+                Leave this unchecked until you have verified the requested
+                scope. Native desktop software may have requirements beyond
+                WCAG, including documentation, support, and platform
+                interoperability.
+              </p>
+            </>
+          )}
+          <div className="actions">
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => navigate(step - 1)}
+              disabled={step === 0}
+            >
+              Back
+            </button>
+            <button type="submit" name="action" value="continue">
+              Save and next
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => navigate(step + 1)}
+            >
+              Skip for now
+            </button>
+            <button type="submit" className="quiet">
+              Save product setup
+            </button>
+          </div>
+          <p className="muted">
+            Changing product details requires renewed response and criterion
+            review.
+          </p>
+        </form>
       </Card>
-      <Card title="Facts to cross-check">
-        <p>
-          Confirm these explicitly. No campus integrations does not establish
-          that there are no external transmissions.
-        </p>
-        <div className="grid two">
-          {Object.entries({
-            externalTransmissions: "External transmissions occur",
-            carrierTraffic: "Carrier service traffic occurs",
-            vendorDataAccess: "Vendor personnel can access data",
-            remoteAccess: "Remote support can access data",
-            encryption: "Encryption provided by",
-          }).map(([key, label]) => (
-            <Select
-              key={key}
-              label={label}
-              value={p.claims[key as keyof typeof p.claims]}
-              onChange={(value) =>
-                setP({ ...p, claims: { ...p.claims, [key]: value } })
-              }
-              options={
-                key === "encryption"
-                  ? ["Unknown", "None", "Application", "Workstation", "Both"]
-                  : ["Unknown", "Yes", "No"]
-              }
-            />
-          ))}
-        </div>
-        <Check
-          label="I have checked that the criterion inventory covers the stated assessment scope and purchaser request."
-          checked={p.criteriaInventoryConfirmed}
-          onChange={(value) =>
-            setP({ ...p, criteriaInventoryConfirmed: value })
-          }
-        />
-        <p className="muted">
-          Changing product details requires renewed response and criterion
-          review. Native desktop scope may include software, documentation,
-          support, and platform interoperability requirements beyond WCAG.
-        </p>
-      </Card>
-      <div className="sticky-actions">
-        <button type="submit">Save product setup</button>
-      </div>
-    </form>
+      <details className="card question-nav">
+        <summary>
+          Return to a setup question · {remaining} need attention
+        </summary>
+        {details.map(([key, label], i) => (
+          <button key={key} onClick={() => navigate(i)}>
+            {i + 1}. {label}
+            <small>
+              {p.confirmed.includes(key) ? "Confirmed" : "Needs confirmation"}
+            </small>
+          </button>
+        ))}
+        {claims.map(([key, label], i) => (
+          <button key={key} onClick={() => navigate(details.length + i)}>
+            {details.length + i + 1}. {label}
+            <small>{p.claims[key]}</small>
+          </button>
+        ))}
+        <button onClick={() => navigate(total - 1)}>
+          {total}. Check the accessibility assessment scope
+          <small>
+            {p.criteriaInventoryConfirmed ? "Confirmed" : "Needs confirmation"}
+          </small>
+        </button>
+      </details>
+    </div>
   );
 }
 function EvidenceArea({
@@ -1007,66 +1174,139 @@ function EvidenceCard({
     </Card>
   );
 }
-function Questionnaire(props: Common) {
-  const [selected, setSelected] = useState(
-      ephemeral
-        ? temporaryQuestion
-        : sessionStorage.getItem("acronym-question") || questions[0].id,
-    ),
-    [questionDirty, setQuestionDirty] = useState(false),
-    [filter, setFilter] = useState("All questions");
-  const visible = questions.filter(
-    (q) =>
-      filter === "All questions" || props.a.answers[q.id].status !== "Approved",
+function Questionnaire(
+  props: Common & { clearDirty: () => void; go: (tab: Tab) => void },
+) {
+  const [step, move] = useGuidePosition(
+    props.a.id,
+    "questions",
+    questions.length,
   );
+  const [dirty, setDirty] = useState(false);
+  const [filter, setFilter] = useState("All questions");
+  const unresolved = questions.filter(
+    (q) => props.a.answers[q.id].status !== "Approved",
+  );
+  const navigate = (next: number) => {
+    if (
+      dirty &&
+      !window.confirm(
+        "Leave this question and discard unsaved edits? Your saved answer will stay unchanged.",
+      )
+    )
+      return;
+    setDirty(false);
+    props.clearDirty();
+    move(next);
+  };
   return (
     <div
-      className="question-layout"
+      className="guided-flow"
       onChangeCapture={(e) => {
-        if ((e.target as HTMLElement).closest("form")) setQuestionDirty(true);
+        if ((e.target as HTMLElement).closest("form")) setDirty(true);
       }}
     >
-      <div className="question-nav">
+      <p className="notice">
+        Work through one question at a time. Skip moves on without changing your
+        answer or marking it complete. Return to any question below.
+      </p>
+      {step < questions.length ? (
+        <>
+          <p aria-live="polite" className="eyebrow">
+            Question {step + 1} of {questions.length} · {questions[step].group}
+          </p>
+          <progress
+            aria-label="Position in questionnaire"
+            value={step + 1}
+            max={questions.length}
+          />
+          <AnswerEditor
+            {...props}
+            id={questions[step].id}
+            key={questions[step].id}
+            back={() => navigate(step - 1)}
+            canBack={step > 0}
+            skip={() => navigate(step + 1)}
+            advance={() => {
+              setDirty(false);
+              props.clearDirty();
+              move(step + 1);
+            }}
+          />
+        </>
+      ) : (
+        <Card>
+          <h2 id="guide-heading" tabIndex={-1}>
+            You’ve reached the end of the questions
+          </h2>
+          <p>
+            {unresolved.length} of {questions.length} questions still need an
+            answer, clarification, or human review. Reaching the end does not
+            approve your responses.
+          </p>
+          <div className="actions">
+            <button onClick={() => navigate(questions.length - 1)}>Back</button>
+            {unresolved.length > 0 && (
+              <button
+                onClick={() =>
+                  navigate(
+                    questions.findIndex((q) => q.id === unresolved[0].id),
+                  )
+                }
+              >
+                Return to unresolved questions
+              </button>
+            )}
+            <button onClick={() => props.go("Review queue")}>
+              Open review queue
+            </button>
+          </div>
+        </Card>
+      )}
+      <details className="card question-nav">
+        <summary>
+          Return to a question · {unresolved.length} need attention
+        </summary>
         <Select
           label="Question filter"
           value={filter}
           onChange={setFilter}
           options={["All questions", "Unanswered and unresolved"]}
         />
-        {[...new Set(questions.map((q) => q.group))].map((group) => (
-          <div key={group}>
-            <h3>{group}</h3>
-            {visible
-              .filter((q) => q.group === group)
-              .map((q) => (
-                <button
-                  aria-current={q.id === selected ? "step" : undefined}
-                  key={q.id}
-                  onClick={() => {
-                    if (
-                      questionDirty &&
-                      !window.confirm("Discard unsaved changes to this answer?")
-                    )
-                      return;
-                    setQuestionDirty(false);
-                    if (ephemeral) temporaryQuestion = q.id;
-                    else sessionStorage.setItem("acronym-question", q.id);
-                    setSelected(q.id);
-                  }}
-                >
-                  <span>{q.id}</span>
-                  {q.wording}
-                  <small>{props.a.answers[q.id].status}</small>
-                </button>
-              ))}
-          </div>
-        ))}
-      </div>
-      <AnswerEditor {...props} id={selected} key={selected} />
+        {questions.map(
+          (q, i) =>
+            (filter === "All questions" ||
+              props.a.answers[q.id].status !== "Approved") && (
+              <button
+                key={q.id}
+                aria-current={i === step ? "step" : undefined}
+                onClick={() => navigate(i)}
+              >
+                {i + 1}. {q.wording}
+                <small>{props.a.answers[q.id].status}</small>
+              </button>
+            ),
+        )}
+      </details>
     </div>
   );
 }
-function AnswerEditor({ a, id, actor, command }: Common & { id: string }) {
+function AnswerEditor({
+  a,
+  id,
+  actor,
+  command,
+  back,
+  canBack,
+  skip,
+  advance,
+}: Common & {
+  id: string;
+  back: () => void;
+  canBack: boolean;
+  skip: () => void;
+  advance: () => void;
+}) {
   const q = questions.find((q) => q.id === id)!,
     [v, setV] = useState({
       ...a.answers[id],
@@ -1079,7 +1319,9 @@ function AnswerEditor({ a, id, actor, command }: Common & { id: string }) {
     <Card>
       <Badge>Original preparation content</Badge>
       <p className="eyebrow">{q.id}</p>
-      <h2>{q.wording}</h2>
+      <h2 id="guide-heading" tabIndex={-1}>
+        {q.wording}
+      </h2>
       <div className="explanation">
         <h3>In plain language</h3>
         <p>{q.explanation}</p>
@@ -1097,7 +1339,13 @@ function AnswerEditor({ a, id, actor, command }: Common & { id: string }) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          void command({ type: "answer", id, value: v });
+          const continuing =
+            (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") ===
+            "continue";
+          void command(
+            { type: "answer", id, value: v },
+            continuing ? advance : undefined,
+          );
         }}
       >
         <div className="grid two">
@@ -1202,7 +1450,25 @@ function AnswerEditor({ a, id, actor, command }: Common & { id: string }) {
             multiline
           />
         </div>
-        <button type="submit">Save answer</button>
+        <div className="actions">
+          <button
+            type="button"
+            className="secondary"
+            onClick={back}
+            disabled={!canBack}
+          >
+            Back
+          </button>
+          <button type="submit" name="action" value="continue">
+            Save and next
+          </button>
+          <button type="button" className="secondary" onClick={skip}>
+            Skip for now
+          </button>
+          <button type="submit" className="quiet">
+            Save answer
+          </button>
+        </div>
       </form>
       <details>
         <summary>Answer revision history</summary>

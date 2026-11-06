@@ -1,5 +1,9 @@
 # Verification results
 
+## Guided setup and questionnaire — November 6, 2026
+
+Type checking, production build, and all **8 local browser tests** passed for the guided-flow update (both local and public modes). The new test walks through every setup/questionnaire skip, returns to earlier answers, verifies save errors do not advance, checks keyboard focus on the next question, confirms discarded edits do not overwrite a saved negative answer, and inspects a downloaded draft. Skipped answers stay Unanswered, setup fields remain unconfirmed, and final completion remains blocked. Existing evidence/review/export, keyboard, and font-stall workflows also pass.
+
 ## Live Azure verification — November 6, 2026
 
 Deployment [42116061701](https://github.com/cu-app-portal-repos/acronym/actions/runs/42116061701) succeeded on November 5 for commit `b459eca`. The live `/api/health` returned HTTP 200 on November 6. GitHub's clean Linux build and full suite passed in [42115291819](https://github.com/cu-app-portal-repos/acronym/actions/runs/42115291819).

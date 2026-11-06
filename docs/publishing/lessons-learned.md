@@ -53,3 +53,10 @@ CU Launch's status connector still reports its older November 4 failed attempt (
 The managed repository is private; the original `csludlow/Acronym` repository is public. The public repository is kept as a source mirror, with the CU Launch managed repository remaining the deployment source of truth. Deployment and diagnostic jobs now explicitly require `github.repository == 'cu-app-portal-repos/acronym'`, so copying source to the public repository cannot trigger Azure actions there. The verification/documentation commit uses `[skip ci]` because no application runtime code changed and another deployment is unnecessary.
 
 Azure adds two routing cookies even though the app creates no application cookies. They contain no assessment data. No assessment persistence setting, database, resource, secret, or authentication policy was added or changed in this retry.
+
+
+## Guided preparation update — November 6, 2026
+
+The owner requested a clearer saving notice and one-question-at-a-time guidance for both setup and the questionnaire. Public mode now says “Your work is not saved automatically”; AI behavior is explained in privacy information. Each flow has Back, Save and next, and Skip for now, a return list, and an end summary. Skip changes only navigation; it never changes applicability, review, or confirmation. Unsaved edits require an explicit discard choice, and failed validation does not advance. Saving and advancing happens only after the existing command succeeds. Navigation positions are tab memory, scoped per assessment and section; assessment storage rules are unchanged.
+
+Local verification: TypeScript, production build, and eight browser tests passed. This normal update uses the existing main-branch automatic deployment; no Azure resources or settings change.

@@ -884,3 +884,24 @@ code {
   font-family: var(--font-body);
   font-size: 16px;
 }
+
+/* Guided setup and questionnaire keep a single prompt in the reading column. */
+.guided-flow {
+  max-width: 880px;
+  margin-inline: auto;
+}
+.guided-flow progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--cu-blue, #003a63);
+  margin-bottom: 20px;
+}
+.guided-flow .question-nav summary {
+  cursor: pointer;
+}
+.local {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 12px;
+  line-height: 1.45;
+}

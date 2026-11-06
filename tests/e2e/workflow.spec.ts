@@ -44,7 +44,7 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
     .getByLabel("Vendor name", { exact: true })
     .fill("Synthetic Vendor E2E");
   await expect(
-    page.getByRole("button", { name: "Save product setup" }),
+    page.getByRole("button", { name: "Save and next", exact: true }),
   ).toHaveCSS("background-color", "rgb(0, 58, 99)");
   await page.getByRole("button", { name: "Save product setup" }).click();
   await expect(page.getByRole("status")).toContainText(savedMessage);
