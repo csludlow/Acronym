@@ -60,3 +60,8 @@ Azure adds two routing cookies even though the app creates no application cookie
 The owner requested a clearer saving notice and one-question-at-a-time guidance for both setup and the questionnaire. Public mode now says “Your work is not saved automatically”; AI behavior is explained in privacy information. Each flow has Back, Save and next, and Skip for now, a return list, and an end summary. Skip changes only navigation; it never changes applicability, review, or confirmation. Unsaved edits require an explicit discard choice, and failed validation does not advance. Saving and advancing happens only after the existing command succeeds. Navigation positions are tab memory, scoped per assessment and section; assessment storage rules are unchanged.
 
 Local verification: TypeScript, production build, and eight browser tests passed. This normal update uses the existing main-branch automatic deployment; no Azure resources or settings change.
+
+
+## Progress-file handoff — November 6, 2026
+
+The owner requested visible save/open controls and resume behavior. Save progress file is available across assessment sections; Open progress file is on the welcome screen and available from an open workspace. The UI reminds users to save before leaving and requires current form edits to be applied first. Existing backup validation/format and approval invalidation are preserved, including compatibility with older files. Reopening navigates to unfinished recorded content. No database, automatic browser storage, cloud resource, or retention setting was added. Local type/build checks, two resume unit tests, and twelve browser tests passed before publishing through the existing automatic deployment.

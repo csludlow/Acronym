@@ -1,5 +1,9 @@
 # Verification results
 
+## Progress-file workflow — November 6, 2026
+
+Type checking, production build, two resume-selection unit tests, and all **12 browser tests** passed locally. New coverage verifies saving from setup, preventing omission of unapplied edits, reopening after reload at the next unconfirmed setup field, rejecting malformed files without replacing current work, and opening an older backup at the next unanswered questionnaire prompt. Imported approvals require review again; saved negative answers remain negative. The full synthetic workflow also preserves evidence and citations through a progress-file round trip in public mode. Both local and temporary modes pass.
+
 ## Guided setup and questionnaire — November 6, 2026
 
 Type checking, production build, and all **8 local browser tests** passed for the guided-flow update (both local and public modes). The new test walks through every setup/questionnaire skip, returns to earlier answers, verifies save errors do not advance, checks keyboard focus on the next question, confirms discarded edits do not overwrite a saved negative answer, and inspects a downloaded draft. Skipped answers stay Unanswered, setup fields remain unconfirmed, and final completion remains blocked. Existing evidence/review/export, keyboard, and font-stall workflows also pass.

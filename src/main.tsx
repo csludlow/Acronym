@@ -16,6 +16,7 @@ import {
   type ProductKey,
   type Evidence,
 } from "../shared/model";
+import { resumePoint } from "../shared/resume";
 import { handoff } from "../shared/handoff";
 import { appDescription } from "../shared/brand";
 import "./style.css";
@@ -25,6 +26,7 @@ import {
   initializeWorkspace,
   temporaryDownload,
   uploadEvidence,
+  saveProgressFile,
 } from "./workspace";
 type Summary = {
   id: string;
@@ -314,7 +316,8 @@ function App() {
     [message, setMessage] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [dirty, setDirty] = useState(false);
+    [dirty, setDirty] = useState(false),
+    [showImport, setShowImport] = useState(false);
   const refresh = async () => setList(await api("/assessments"));
   useEffect(() => {
     // Optional branding must never delay the first screen or assessment work.
@@ -388,7 +391,7 @@ function App() {
       await refresh();
       setMessage(
         ephemeral
-          ? "Updated in this tab. Download a backup before leaving."
+          ? "Updated in this tab. Save a progress file before leaving."
           : "Saved locally.",
       );
     });
@@ -404,6 +407,32 @@ function App() {
     setError("");
     setMessage("");
     fn();
+  };
+  const openProgress = async (next: Assessment) => {
+    const target = resumePoint(next);
+    if (target.section)
+      guidePositions.set(`${next.id}-${target.section}`, target.step);
+    setA(next);
+    setTab(target.tab);
+    setShowImport(false);
+    await refresh();
+    setMessage(
+      `Progress file opened. Continuing in ${target.tab} at the next unfinished item. Previous approvals and accessibility judgments require fresh human review.`,
+    );
+  };
+  const downloadProgress = () => {
+    if (dirty) {
+      setError(
+        "Save the current question or form first, then choose Save progress file. This prevents your latest edits from being left out.",
+      );
+      return;
+    }
+    void run(async () => {
+      await saveProgressFile(a!.id);
+      setMessage(
+        "Progress file download started. Keep it on your computer and open it next time. Download a new copy after making more changes.",
+      );
+    });
   };
   const common = { a: a!, command, actor };
   return (
@@ -510,7 +539,8 @@ function App() {
               <strong>Your work stays in this tab.</strong> Acronym does not
               save assessments, uploads, or reports on the server or in browser
               storage. Reloading or closing this tab clears your work. Download
-              a report or assessment backup before leaving.
+              a progress file before leaving so you can resume later. Reports
+              can be downloaded separately.
               <details>
                 <summary>How your information is handled</summary>
                 <p>
@@ -537,6 +567,40 @@ function App() {
               )}
             </div>
           )}
+          {a && (
+            <section
+              className="progress-toolbar"
+              aria-label="Keep and reopen your work"
+            >
+              <div className="actions">
+                <button disabled={busy} onClick={downloadProgress}>
+                  Save progress file
+                </button>
+                <button
+                  disabled={busy}
+                  className="secondary"
+                  onClick={() => {
+                    if (dirty) {
+                      setError(
+                        "Save the current question or form before opening another progress file.",
+                      );
+                      return;
+                    }
+                    setShowImport(!showImport);
+                  }}
+                >
+                  Open another progress file
+                </button>
+              </div>
+              <p>
+                Before leaving, save an updated progress file to your computer.
+                It contains your assessment and evidence; it is not encrypted.{" "}
+                {dirty &&
+                  "Apply the current edits with the section’s save button first."}
+              </p>
+            </section>
+          )}
+          {a && showImport && <Restore run={run} done={openProgress} />}
           <div className="page-heading">
             <div>
               <p className="eyebrow">EVIDENCE FIRST. HUMAN REVIEWED.</p>
@@ -599,13 +663,7 @@ function App() {
                   </button>
                 </div>
               </Card>
-              <Restore
-                run={run}
-                done={async (next) => {
-                  setA(next);
-                  await refresh();
-                }}
-              />
+              <Restore run={run} done={openProgress} />
             </>
           ) : (
             <div
@@ -644,10 +702,7 @@ function App() {
                     a={a}
                     actor={actor}
                     run={run}
-                    done={async (next) => {
-                      setA(next);
-                      await refresh();
-                    }}
+                    done={openProgress}
                   />
                 )}
               </fieldset>
@@ -765,7 +820,7 @@ function Overview({ a, go }: { a: Assessment; go: (t: Tab) => void }) {
       <Card title="A workspace for preparation">
         <p>
           {ephemeral
-            ? "External AI processing is disabled. Work is held in this tab until you leave or reload. Download your preparation package and backup before leaving."
+            ? "External AI processing is disabled. Work is held in this tab until you leave or reload. Save a progress file and download your preparation package before leaving."
             : "External AI processing is disabled. Your work stays in the local database and file repository. Local storage is not encrypted by this application."}
         </p>
         <p>
@@ -1901,27 +1956,45 @@ function Restore({
 }) {
   const [file, setFile] = useState<File | null>(null);
   return (
-    <Card title="Restore an assessment backup">
+    <Card title="Open progress file">
       <p>
-        Restores a separate copy and its evidence files. Existing assessments
-        are kept. Imported approvals and judgments require fresh human review.
-        Download issued exports separately before using this portable backup.
+        Choose a progress file you previously saved to your computer. Acronym
+        opens a separate copy with your answers, evidence, tests, and history,
+        then takes you to the next unfinished item. Existing work is kept.
+        Previous approvals and accessibility judgments need fresh human review.
+        Older Acronym assessment backups also work. Report JSON files are not
+        progress files.
       </p>
       <form
         onSubmit={(e) => {
           e.preventDefault();
           void run(async () => {
-            if (!file) throw new Error("Select a backup.");
+            if (!file) throw new Error("Choose a progress file.");
             if (file.size > 80 * 1024 * 1024)
               throw new Error(
-                "Backup exceeds 80 MB. Use full-folder recovery.",
+                "Progress file exceeds the 80 MB limit. Choose a smaller progress file.",
               );
-            await done(await api("/restore", JSON.parse(await file.text())));
+            let data: unknown;
+            try {
+              data = JSON.parse(await file.text());
+            } catch {
+              throw new Error(
+                "This is not a readable progress file. Choose an Acronym progress file (.json).",
+              );
+            }
+            if (
+              !data ||
+              (data as { format?: string }).format !== "acronym-backup-v1"
+            )
+              throw new Error(
+                "Choose a progress file saved with Save progress file. Report JSON files cannot reopen a workspace.",
+              );
+            await done(await api("/restore", data));
           });
         }}
       >
         <label className="field">
-          <span>Assessment backup file</span>
+          <span>Progress file (.json)</span>
           <input
             type="file"
             accept=".json"
@@ -1929,7 +2002,7 @@ function Restore({
             onChange={(e) => setFile(e.target.files?.[0] || null)}
           />
         </label>
-        <button className="secondary">Restore as a copy</button>
+        <button className="secondary">Open progress file</button>
       </form>
     </Card>
   );
@@ -2218,23 +2291,20 @@ function Exports({
           <p>No snapshots yet. Create a draft at any time.</p>
         )}
       </Card>
-      <Card title="Portable assessment backup">
+      <Card title="Keep your work for next time">
         <p>
-          Includes this assessment, its revision history, and original evidence
-          files. The downloaded file may contain sensitive information and is
-          not encrypted. Portable backups exclude issued export files; download
-          those separately.
-          {ephemeral &&
-            " This is the only way to resume your work after leaving this tab. Restoring a backup requires a fresh review of imported approvals."}
+          Use <strong>Save progress file</strong> at the top of the workspace to
+          keep your product details, answers, evidence files, tests, and
+          history. On your next visit, choose{" "}
+          <strong>Open progress file</strong> on the welcome screen. Download an
+          updated copy each time you finish working.
         </p>
-        <DownloadLink
-          className="button secondary"
-          href={`/api/assessments/${a.id}/backup`}
-        >
-          Download assessment backup
-        </DownloadLink>
+        <p>
+          Progress files are not encrypted and do not include issued DOCX/PDF
+          reports. Download those separately. Imported approvals and
+          accessibility judgments require fresh review.
+        </p>
       </Card>
-      <Restore run={run} done={done} />
     </>
   );
 }

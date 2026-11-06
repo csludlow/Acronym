@@ -161,7 +161,7 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
     expect(report.assessment.tests[0].result).toBe("Fail");
     const backupEvent = page.waitForEvent("download");
     await page
-      .getByRole("link", { name: "Download assessment backup", exact: true })
+      .getByRole("button", { name: "Save progress file", exact: true })
       .click();
     const backupFile = await (await backupEvent).path();
     expect(backupFile).toBeTruthy();
@@ -199,9 +199,9 @@ test("synthetic vendor can create, attach evidence, answer, test, review, export
     expect(
       await page.getByLabel("Current assessment").locator("option").count(),
     ).toBe(1);
-    await page.getByLabel("Assessment backup file").setInputFiles(backupFile!);
+    await page.getByLabel("Progress file (.json)").setInputFiles(backupFile!);
     await page
-      .getByRole("button", { name: "Restore as a copy", exact: true })
+      .getByRole("button", { name: "Open progress file", exact: true })
       .click();
     await expect(page.getByLabel("Current assessment")).not.toHaveValue("");
     await page.getByRole("button", { name: /04 Questionnaire/ }).click();

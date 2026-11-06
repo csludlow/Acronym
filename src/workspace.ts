@@ -52,7 +52,7 @@ function assessment(id: string) {
   const a = assessments.get(id);
   demand(
     a,
-    "Assessment is no longer in this tab. Restore a downloaded backup to continue.",
+    "Assessment is no longer in this tab. Open a saved progress file to continue.",
   );
   return a;
 }
@@ -225,6 +225,23 @@ export function temporaryDownload(path: string) {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function saveProgressFile(id: string) {
+  const data = ephemeral
+    ? portable(assessment(id))
+    : await request(`/assessments/${id}/backup`);
+  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+  demand(
+    blob.size <= 80 * 1024 * 1024,
+    "This progress file exceeds the 80 MB reopening limit. Download the reports and individual evidence files instead.",
+  );
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `acronym-progress-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
