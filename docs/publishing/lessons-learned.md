@@ -2,6 +2,14 @@
 
 Record manual fixes and deployment blockers here.
 
+## 2026-11-20: public links rejected by the request boundary
+
+The live homepage returned HTTP 200 for a direct visit but returned “Cross-origin access is disabled.” when sent the browser metadata for a cross-site top-level navigation. The previous deployment and CI had succeeded. A real Chrome click from a synthetic external link reproduced the error locally. This is an application request-boundary defect, not evidence of another Azure outage or font failure.
+
+The public temporary app now permits GET/HEAD navigations to `/` and `/index.html` with `Sec-Fetch-Mode: navigate` and `Sec-Fetch-Dest: document`. Host and explicit Origin validation still apply. API requests, POSTs, frames, resources and persistent local mode retain the existing restrictions. No CORS wildcard, cloud setting, identity or storage change is involved. Public health remains independent of the request boundary.
+
+Browser semantics checked November 20, 2026: [MDN Sec-Fetch-Site](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-Site) and [MDN Sec-Fetch-Mode](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-Mode). Limiting the exception to the two public entry paths is our implementation choice. Regression tests cover external-link entry and continued API/host/origin restrictions.
+
 ## 2026-11-04: publishing failures and workflow corrections
 
 - Run `41887932613` began on the publishing-workflow merge. Azure login received missing inputs and exhausted its retries. The newer runs `41888230069` and `41889830163` successfully authenticated through OIDC, then failed in OneDeploy with HTTP 503. Thus the original login error does not explain the later failures. GitHub logs do not establish the underlying Azure service failure; CU Launch/Azure diagnostics are still needed.

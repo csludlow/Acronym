@@ -59,9 +59,18 @@ export function baseApp(options: AppOptions) {
     if (!local && !hosted)
       return res.status(403).json({ error: "This host is not configured." });
     const expected = hosted ? options.publicOrigin : `http://${host}`;
+    // A link from CU Launch or another website is a cross-site navigation.
+    // Only the public app shell can be opened this way; API requests, embeds,
+    // mutations and the persistent local app keep their existing boundary.
+    const publicEntryNavigation =
+      options.mode === "ephemeral" &&
+      ["GET", "HEAD"].includes(req.method) &&
+      ["/", "/index.html"].includes(req.path) &&
+      req.headers["sec-fetch-mode"] === "navigate" &&
+      req.headers["sec-fetch-dest"] === "document";
     if (
       (req.headers.origin && req.headers.origin !== expected) ||
-      req.headers["sec-fetch-site"] === "cross-site"
+      (req.headers["sec-fetch-site"] === "cross-site" && !publicEntryNavigation)
     )
       return res
         .status(403)

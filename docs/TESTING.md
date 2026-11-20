@@ -1,5 +1,11 @@
 # Verification results
 
+## External-link access — November 20, 2026
+
+The live site returned 200 for direct entry and 403 for cross-site document navigation headers. A Chrome regression clicking an external link also displayed the reported JSON error before the fix. After the fix, type checking and production build passed, along with **37 backend tests** and **17 browser tests** (the public-entry test is intentionally skipped in persistent local mode).
+
+New boundary tests cover public GET/HEAD entry, query strings, explicit Origin and Host validation, blocked cross-site API requests even with navigation headers, blocked POSTs/frames/resources, unchanged local-mode restrictions, same-origin requests, required mutation headers and public health. The browser regression opens a link from a synthetic external page, creates an assessment and saves the first answer. Existing progress-file, review, evidence and report workflows also pass. These are local predeployment results; live deployment verification is reported separately.
+
 ## First-question name entry and setup review — November 6, 2026
 
 A regression reproduced the reported error on the previous build: placing a visible personal name in the input without firing an input event, then saving the first setup question, showed “Enter your name in the sidebar before saving.” The same regression passes after the fix. This reproduces one autofill-style failure path; it does not identify the exact behavior of the reporter's browser.
